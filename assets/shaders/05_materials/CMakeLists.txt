@@ -1,0 +1,1 @@
+CompileShaderVariants(GltfRendererMaterials materials-variants.json)

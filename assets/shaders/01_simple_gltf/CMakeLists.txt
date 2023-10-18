@@ -1,0 +1,1 @@
+CompileShaderSet(GltfRendererSimpleGltf simple_gltf)

@@ -1,0 +1,134 @@
+{
+  "version": 2,
+  "configurePresets": [
+    {
+      "name": "configure-base",
+      "hidden": true,
+      "generator": "Ninja"
+    },
+    {
+      "name": "msvc_x64",
+      "hidden": true,
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "toolset": {
+        "value": "host=x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "cl",
+        "CMAKE_CXX_COMPILER": "cl"
+      }
+    },
+    {
+      "name": "debug",
+      "displayName": "Debug",
+      "inherits": ["configure-base"],
+      "binaryDir": "${sourceDir}/build/Debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      },
+      "environment": {
+        "KDGPU_KDGUI_ASSET_PATH": "${sourceDir}/build/Debug/_deps/kdgpu-build/assets"
+      }
+    },
+    {
+      "name": "debug-msvc_x64",
+      "displayName": "Debug (msvc_x64)",
+      "inherits": ["configure-base", "msvc_x64"],
+      "binaryDir": "${sourceDir}/build/Debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      },
+      "environment": {
+        "KDGPU_KDGUI_ASSET_PATH": "${sourceDir}/build/Debug/_deps/kdgpu-build/assets"
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "Release",
+      "inherits": ["configure-base"],
+      "binaryDir": "${sourceDir}/build/Release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "environment": {
+        "KDGPU_KDGUI_ASSET_PATH": "${sourceDir}/build/Release/_deps/kdgpu-build/assets"
+      }
+    },
+    {
+      "name": "release-msvc_x64",
+      "displayName": "Release (msvc_x64)",
+      "inherits": ["configure-base", "msvc_x64"],
+      "binaryDir": "${sourceDir}/build/Release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "environment": {
+        "KDGPU_KDGUI_ASSET_PATH": "${sourceDir}/build/Release/_deps/kdgpu-build/assets"
+      }
+    },
+    {
+      "name": "profile",
+      "displayName": "Profile",
+      "inherits": ["configure-base"],
+      "binaryDir": "${sourceDir}/build/Profile",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      },
+      "environment": {
+        "KDGPU_KDGUI_ASSET_PATH": "${sourceDir}/build/Profile/_deps/kdgpu-build/assets"
+      }
+    },
+    {
+      "name": "profile-msvc_x64",
+      "displayName": "Profile (msvc_x64)",
+      "inherits": ["configure-base", "msvc_x64"],
+      "binaryDir": "${sourceDir}/build/Profile",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      },
+      "environment": {
+        "KDGPU_KDGUI_ASSET_PATH": "${sourceDir}/build/Profile/_deps/kdgpu-build/assets"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "debug"
+    },
+    {
+      "name": "release",
+      "configurePreset": "release"
+    },
+    {
+      "name": "profile",
+      "configurePreset": "profile"
+    },
+    {
+      "name": "debug-msvc_x64",
+      "configurePreset": "debug-msvc_x64"
+    },
+    {
+      "name": "release-msvc_x64",
+      "configurePreset": "release-msvc_x64"
+    },
+    {
+      "name": "profile-msvc_x64",
+      "configurePreset": "profile-msvc_x64"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "debug"
+    },
+    {
+      "name": "debug-msvc_x64",
+      "configurePreset": "debug-msvc_x64"
+    }
+  ]
+}
