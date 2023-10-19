@@ -1,0 +1,1 @@
+CompileShaderVariants(GltfRendererPbrMetallicRoughness pbr-metallic-roughness-variants.json)

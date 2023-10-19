@@ -1,0 +1,22 @@
+{
+    "options": [
+        {
+            "name": "hasTexCoords",
+            "define": "TEXCOORD_0_ENABLED"
+        },
+        {
+            "name": "enableAlphaCutoff",
+            "define": "ALPHA_CUTOFF_ENABLED"
+        }
+    ],
+    "shaders": [
+        {
+            "filename": "pbr_metallic_roughness.vert",
+            "options": [0]
+        },
+        {
+            "filename": "pbr_metallic_roughness.frag",
+            "options": [0, 1]
+        }
+    ]
+}
