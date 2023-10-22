@@ -22,3 +22,5 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/dependencies/stb.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/dependencies/ktx.cmake)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/dependencies/tinygltf.cmake)
+
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/dependencies/sample-models.cmake)

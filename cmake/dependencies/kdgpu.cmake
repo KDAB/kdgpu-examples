@@ -19,4 +19,5 @@ if(NOT KDGpu_FOUND)
 endif()
 
 # Should be available if we have found/built kdgpu above
-find_package(KDGpu_KDGui CONFIG)
+find_package(KDGpuKDGui CONFIG)
+find_package(KDGpuExample CONFIG)
