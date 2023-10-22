@@ -16,6 +16,7 @@ target_link_libraries(
     KDGpu::KDGpuExample
     TinyGltfHelper::TinyGltfHelper
     tinygltf
+    ExampleUtility
     stb
     glm::glm
 )

@@ -8,7 +8,7 @@ find_package(Vulkan REQUIRED)
 add_executable(${PROJECT_NAME} main.cpp materials.cpp ffx_cacao.cpp)
 
 target_link_libraries(${PROJECT_NAME} KDGpu::KDGpuExample
-                      TinyGltfHelper::TinyGltfHelper tinygltf stb glm::glm)
+                      TinyGltfHelper::TinyGltfHelper ExampleUtility tinygltf stb glm::glm)
 
 target_include_directories(${PROJECT_NAME}
                            PUBLIC ../../../assets/shaders/06_ffx_cacao/)

@@ -1,0 +1,2 @@
+add_library(ExampleUtility INTERFACE)
+target_include_directories(ExampleUtility INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})

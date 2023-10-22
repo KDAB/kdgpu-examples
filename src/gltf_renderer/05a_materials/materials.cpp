@@ -1,4 +1,5 @@
 #include "materials.h"
+#include "example_utility.h"
 
 #include <KDGpuExample/engine.h>
 #include <KDGpuExample/kdgpuexample.h>
@@ -19,28 +20,6 @@
 #include <cmath>
 #include <fstream>
 #include <string>
-
-namespace {
-
-inline std::string gltfModelPath()
-{
-#if defined(GLTF_RENDERER_MODEL_PATH)
-    return GLTF_RENDERER_MODEL_PATH;
-#else
-    return "";
-#endif
-}
-
-inline std::string assetPath()
-{
-#if defined(GLTF_RENDERER_ASSET_PATH)
-    return GLTF_RENDERER_ASSET_PATH;
-#else
-    return "";
-#endif
-}
-
-} // namespace
 
 Materials::Materials()
     : KDGpuExample::SimpleExampleEngineLayer()
@@ -113,10 +92,10 @@ void Materials::initializeScene()
     tinygltf::Model model;
     // const std::string modelPath("AntiqueCamera/glTF/AntiqueCamera.gltf");
     // const std::string modelPath("BoxInterleaved/glTF/BoxInterleaved.gltf");
-    const std::string modelPath("FlightHelmet/glTF/FlightHelmet.gltf");
+    const std::string modelPath("FlightHelmet/FlightHelmet.gltf");
     // const std::string modelPath("Sponza/glTF/Sponza.gltf");
     // const std::string modelPath("Buggy/glTF/Buggy.gltf");
-    if (!TinyGltfHelper::loadModel(model, gltfModelPath() + modelPath))
+    if (!TinyGltfHelper::loadModel(model, ExampleUtility::gltfModelPath() + modelPath))
         return;
 
     // Load any gltf images (Textures) needed
@@ -715,7 +694,7 @@ Handle<ShaderModule_t> Materials::findOrCreateShaderModule(const ShaderModuleKey
     if (shaderModuleIt != m_shaderModules.end()) {
         return shaderModuleIt->second.handle();
     } else {
-        const auto shaderPath = assetPath() + "/shaders/05_materials/" + shaderFilename(key.shaderOptionsKey, key.stage);
+        const auto shaderPath = ExampleUtility::assetPath() + "/shaders/05_materials/" + shaderFilename(key.shaderOptionsKey, key.stage);
         ShaderModule shader = m_device.createShaderModule(KDGpuExample::readShaderFile(shaderPath));
         const auto shaderHandle = shader.handle();
         m_shaderModules.insert({ key, std::move(shader) });

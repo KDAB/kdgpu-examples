@@ -1,4 +1,5 @@
 #include "simple_gltf.h"
+#include "example_utility.h"
 
 #include <KDGpuExample/engine.h>
 #include <KDGpuExample/kdgpuexample.h>
@@ -16,19 +17,6 @@
 #include <assert.h>
 #include <fstream>
 #include <string>
-
-namespace {
-
-inline std::string assetPath()
-{
-#if defined(GLTF_RENDERER_ASSET_PATH)
-    return GLTF_RENDERER_ASSET_PATH;
-#else
-    return "";
-#endif
-}
-
-} // namespace
 
 void SimpleGltf::initializeScene()
 {
@@ -58,19 +46,19 @@ void SimpleGltf::initializeScene()
     };
     m_pipelineLayout = m_device.createPipelineLayout(pipelineLayoutOptions);
 
-    const auto vertexShaderPath = assetPath() + "/shaders/01_simple_gltf/simple_gltf.vert.spv";
+    const auto vertexShaderPath = ExampleUtility::assetPath() + "/shaders/01_simple_gltf/simple_gltf.vert.spv";
     m_vertexShader = m_device.createShaderModule(KDGpuExample::readShaderFile(vertexShaderPath));
 
-    const auto fragmentShaderPath = assetPath() + "/shaders/01_simple_gltf/simple_gltf.frag.spv";
+    const auto fragmentShaderPath = ExampleUtility::assetPath() + "/shaders/01_simple_gltf/simple_gltf.frag.spv";
     m_fragmentShader = m_device.createShaderModule(KDGpuExample::readShaderFile(fragmentShaderPath));
 
     // Load the model
     tinygltf::Model model;
     // const std::string modelPath("AntiqueCamera/glTF/AntiqueCamera.gltf");
-    const std::string modelPath("BoxInterleaved/glTF/BoxInterleaved.gltf");
+    const std::string modelPath("BoxInterleaved/BoxInterleaved.gltf");
     // const std::string modelPath("DamagedHelmet/glTF/DamagedHelmet.gltf");
     // const std::string modelPath("Sponza/glTF/Sponza.gltf");
-    if (!TinyGltfHelper::loadModel(model, assetPath() + "/../_deps/gltfsamplemodels-src/2.0/" + modelPath))
+    if (!TinyGltfHelper::loadModel(model, ExampleUtility::gltfModelPath() + modelPath))
         return;
 
     // Interrogate the model to see which usage flag we need for each buffer.

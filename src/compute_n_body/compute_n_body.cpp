@@ -25,16 +25,9 @@
 #include <random>
 #include <string>
 
-namespace {
+#include "example_utility.h"
 
-inline std::string assetPath()
-{
-#if defined(GLTF_RENDERER_ASSET_PATH)
-    return GLTF_RENDERER_ASSET_PATH;
-#else
-    return "";
-#endif
-}
+namespace {
 
 ktxResult loadKtxFile(const std::string &filename, ktxTexture **texture)
 {
@@ -59,9 +52,9 @@ ComputeNBody::ComputeNBody()
 void ComputeNBody::initializeScene()
 {
     // Load the particle and gradient textures
-    m_particleTexture = createTextureFromKtxFile(assetPath() + "/textures/particle01_rgba.ktx");
+    m_particleTexture = createTextureFromKtxFile(ExampleUtility::assetPath() + "/textures/particle01_rgba.ktx");
     m_particleTextureView = m_particleTexture.createView();
-    m_gradientTexture = createTextureFromKtxFile(assetPath() + "/textures/particle_gradient_rgba.ktx");
+    m_gradientTexture = createTextureFromKtxFile(ExampleUtility::assetPath() + "/textures/particle_gradient_rgba.ktx");
     m_gradientTextureView = m_gradientTexture.createView();
     m_sampler = m_device.createSampler(SamplerOptions{ .magFilter = FilterMode::Linear, .minFilter = FilterMode::Linear });
 
@@ -197,10 +190,10 @@ void ComputeNBody::initializeParticles()
 void ComputeNBody::initializeGraphicsPipeline()
 {
     // Create a vertex shader and fragment shader (spir-v only for now)
-    const auto vertexShaderPath = assetPath() + "/shaders/compute_n_body/particle.vert.spv";
+    const auto vertexShaderPath = ExampleUtility::assetPath() + "/shaders/compute_n_body/particle.vert.spv";
     auto vertexShader = m_device.createShaderModule(KDGpuExample::readShaderFile(vertexShaderPath));
 
-    const auto fragmentShaderPath = assetPath() + "/shaders/compute_n_body/particle.frag.spv";
+    const auto fragmentShaderPath = ExampleUtility::assetPath() + "/shaders/compute_n_body/particle.frag.spv";
     auto fragmentShader = m_device.createShaderModule(KDGpuExample::readShaderFile(fragmentShaderPath));
 
     // Create bind group layout consisting of a single binding holding a UBO
@@ -332,7 +325,7 @@ void ComputeNBody::initializeComputePipelines()
     m_computeBindGroup = m_device.createBindGroup(bindGroupOptions);
 
     {
-        const auto calculateShaderPath = assetPath() + "/shaders/compute_n_body/particle_calculate.comp.spv";
+        const auto calculateShaderPath = ExampleUtility::assetPath() + "/shaders/compute_n_body/particle_calculate.comp.spv";
         auto calculateShader = m_device.createShaderModule(KDGpuExample::readShaderFile(calculateShaderPath));
         const ComputePipelineOptions pipelineOptions{
             .layout = m_computePipelineLayout,
@@ -342,7 +335,7 @@ void ComputeNBody::initializeComputePipelines()
     }
 
     {
-        const auto integrateShaderPath = assetPath() + "/shaders/compute_n_body/particle_integrate.comp.spv";
+        const auto integrateShaderPath = ExampleUtility::assetPath() + "/shaders/compute_n_body/particle_integrate.comp.spv";
         auto integrateShader = m_device.createShaderModule(KDGpuExample::readShaderFile(integrateShaderPath));
         const ComputePipelineOptions pipelineOptions{
             .layout = m_computePipelineLayout,

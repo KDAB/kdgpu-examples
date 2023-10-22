@@ -15,6 +15,7 @@ target_link_libraries(
     ${PROJECT_NAME}
     KDGpu::KDGpuExample
     TinyGltfHelper::TinyGltfHelper
+    ExampleUtility
     glm::glm
     ktx::ktx
 )

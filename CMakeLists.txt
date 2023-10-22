@@ -10,7 +10,7 @@ project(KDGpuExamples VERSION 0.0.1)
 set(BUILD_SHARED_LIBS ON)
 add_definitions(-DGLTF_RENDERER_ASSET_PATH="${CMAKE_CURRENT_BINARY_DIR}/assets")
 add_definitions(
-  -DGLTF_RENDERER_MODEL_PATH="${CMAKE_CURRENT_SOURCE_DIR}/../glTF-Sample-Models/2.0/"
+  -DGLTF_RENDERER_MODEL_PATH="${CMAKE_CURRENT_BINARY_DIR}/_deps/sample-models-src/models/"
 )
 
 # Add a DEBUG define on DEBUG builds

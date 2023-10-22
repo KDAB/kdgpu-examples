@@ -1,2 +1,3 @@
 add_subdirectory(gltf_renderer)
 add_subdirectory(compute_n_body)
+add_subdirectory(utility)
