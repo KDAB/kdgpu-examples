@@ -8,11 +8,12 @@ message(STATUS "Checking/updating dependencies. This may take a little while...
     Set the FETCHCONTENT_QUIET option to OFF to get verbose output.
 ")
 
-# KDUtils
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/dependencies/kdgpu.cmake)
 
 # spdlog Logging Library
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/dependencies/spdlog.cmake)
+
+# kdgpu
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/dependencies/kdgpu.cmake)
 
 # glm
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/dependencies/glm.cmake)
