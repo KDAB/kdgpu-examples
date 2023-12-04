@@ -118,6 +118,18 @@ void PbrMetallicRoughness::initializeScene()
             .binding = 2,
             .resourceType = ResourceBindingType::CombinedImageSampler,
             .shaderStages = ShaderStageFlags(ShaderStageFlagBits::FragmentBit)
+        },{
+            .binding = 3,
+            .resourceType = ResourceBindingType::CombinedImageSampler,
+            .shaderStages = ShaderStageFlags(ShaderStageFlagBits::FragmentBit)
+        },{
+            .binding = 4,
+            .resourceType = ResourceBindingType::CombinedImageSampler,
+            .shaderStages = ShaderStageFlags(ShaderStageFlagBits::FragmentBit)
+        },{
+            .binding = 5,
+            .resourceType = ResourceBindingType::CombinedImageSampler,
+            .shaderStages = ShaderStageFlags(ShaderStageFlagBits::FragmentBit)
         }}
     };
     // clang-format on
@@ -566,7 +578,7 @@ void PbrMetallicRoughness::setupMaterial(const tinygltf::Model &model, uint32_t 
     // Create a buffer and populate it with the material data. Just the base color factor
     // and alpha cutoff will be implemented here for simplicity.
     const BufferOptions bufferOptions = {
-        .size = 8 * sizeof(float), // Pad to 16 bytes for std140 layout
+        .size = 11 * sizeof(float),
         .usage = BufferUsageFlagBits::UniformBufferBit | BufferUsageFlagBits::TransferDstBit,
         .memoryUsage = MemoryUsage::GpuOnly
     };
@@ -581,6 +593,7 @@ void PbrMetallicRoughness::setupMaterial(const tinygltf::Model &model, uint32_t 
             static_cast<float>(pbr.baseColorFactor[2]),
             static_cast<float>(pbr.baseColorFactor[3])
         },
+        .emissiveFactor = glm::make_vec4(material.emissiveFactor.data()),
         .metallicFactor = static_cast<float>(pbr.metallicFactor),
         .roughnessFactor = static_cast<float>(pbr.roughnessFactor),
         .alphaCutoff = static_cast<float>(material.alphaCutoff)
@@ -598,7 +611,10 @@ void PbrMetallicRoughness::setupMaterial(const tinygltf::Model &model, uint32_t 
     // Create a bind group for this material
     // clang-format off
     const int baseColorTextureIndex = material.pbrMetallicRoughness.baseColorTexture.index;
-    const int metallicRoughnessTextureIndex = material.pbrMetallicRoughness.metallicRoughnessTexture.index; // Actually occlusionRoughnessMetallic
+    const int metallicRoughnessTextureIndex = material.pbrMetallicRoughness.metallicRoughnessTexture.index;
+    const int normalTextureIndex = material.normalTexture.index;
+    const int occlusionTextureIndex = material.occlusionTexture.index;
+    const int emissiveTextureIndex = material.emissiveTexture.index;
     const BindGroupOptions bindGroupOptions = {
         .layout = m_materialBindGroupLayout,
         .resources = {{
@@ -615,6 +631,24 @@ void PbrMetallicRoughness::setupMaterial(const tinygltf::Model &model, uint32_t 
             .resource = TextureViewSamplerBinding{
                 .textureView = (metallicRoughnessTextureIndex != -1) ? m_viewSamplers.at(metallicRoughnessTextureIndex).view : m_opaqueWhite.textureView,
                 .sampler = (metallicRoughnessTextureIndex != -1) ? m_viewSamplers.at(metallicRoughnessTextureIndex).sampler : m_defaultSampler
+            }
+        }, {
+            .binding = 3,
+            .resource = TextureViewSamplerBinding{
+                .textureView = (normalTextureIndex != -1) ? m_viewSamplers.at(normalTextureIndex).view : m_defaultNormal.textureView,
+                .sampler = (normalTextureIndex != -1) ? m_viewSamplers.at(normalTextureIndex).sampler : m_defaultSampler
+            }
+        }, {
+            .binding = 4,
+            .resource = TextureViewSamplerBinding{
+                .textureView = (occlusionTextureIndex != -1) ? m_viewSamplers.at(occlusionTextureIndex).view : m_opaqueWhite.textureView,
+                .sampler = (occlusionTextureIndex != -1) ? m_viewSamplers.at(occlusionTextureIndex).sampler : m_defaultSampler
+            }
+        }, {
+            .binding = 5,
+            .resource = TextureViewSamplerBinding{
+                .textureView = (emissiveTextureIndex != -1) ? m_viewSamplers.at(emissiveTextureIndex).view : m_transparentBlack.textureView,
+                .sampler = (emissiveTextureIndex != -1) ? m_viewSamplers.at(emissiveTextureIndex).sampler : m_defaultSampler
             }
         }}
     };
