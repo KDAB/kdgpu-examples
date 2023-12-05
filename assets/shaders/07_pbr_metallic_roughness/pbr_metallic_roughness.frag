@@ -36,10 +36,85 @@ layout(set = 3, binding = 0) uniform samplerCube envLightIrradiance;
 layout(set = 3, binding = 1) uniform samplerCube envLightSpecular;
 layout(set = 3, binding = 2) uniform sampler2D brdfLUT;
 
+const int MAX_LIGHTS = 8;
+const int TYPE_POINT = 0;
+const int TYPE_DIRECTIONAL = 1;
+const int TYPE_SPOT = 2;
+
+struct Light {
+    vec4 color;
+
+    vec3 worldDirection;
+    float intensity;
+
+    int type;
+    float constantAttenuation;
+    float linearAttenuation;
+    float quadraticAttenuation;
+
+    vec3 localDirection;
+    float cutOffAngle;
+
+    vec3 worldPosition;
+    float padding;
+};
 
 const float M_PI = 3.141592653589793;
 
 vec3 sRGBtoLinear(vec3 srgb) { return pow(srgb, vec3(2.2)); }
+
+
+void calculateLightingCoeffs(const in Light light,
+                   const in vec3 wPosition,
+                   const in vec3 n,
+                   const in vec3 v,
+                   out vec3 s,
+                   out vec3 h,
+                   out float sDotN,
+                   out float att)
+{
+    att = 1.0f;
+
+    if (light.type != TYPE_DIRECTIONAL) {
+        // Point and Spot lights
+        vec3 sUnnormalized = vec3(light.worldPosition) - wPosition;
+        s = normalize(sUnnormalized);
+
+        // Calculate the attenuation factor
+        sDotN = dot(s, n);
+        if (sDotN > 0.0) {
+            float dist = length(sUnnormalized);
+            float d2 = dist * dist;
+            if (light.quadraticAttenuation > 0.0)
+            {
+                // recommended attenuation with range based on KHR_lights_punctual extension
+                float d2OverR2 = d2/(light.quadraticAttenuation * light.quadraticAttenuation);
+                att = max( min( 1.0 - ( d2OverR2 * d2OverR2 ), 1.0 ), 0.0 ) / d2;
+            }
+            else {
+               att = 1.0 / d2;
+            }
+            att = clamp(att, 0.0, 1.0);
+        }
+        if (light.type == TYPE_SPOT) {
+            // Calculate angular attenuation of spotlight, between 0 and 1.
+            // yields 1 inside innerCone, 0 outside outerConeAngle, and value interpolated
+            // between 1 and 0 between innerConeAngle and outerConeAngle
+            float cd = dot(-light.localDirection, s);
+            float angularAttenuation = clamp(cd * radians(light.cutOffAngle), 0.0, 1.0);
+            angularAttenuation *= angularAttenuation;
+            att *= angularAttenuation;
+        }
+    }
+    else {
+        // Directional lights
+        // The light direction is in world space already
+        s = normalize(-light.worldDirection);
+        sDotN = dot(s, n);
+    }
+
+    h = normalize(s + v);
+}
 
 int mipLevelCount(const in samplerCube cube)
 {
@@ -153,6 +228,55 @@ mat3 calcWorldSpaceToTangentSpaceMatrix(const in vec3 wNormal, const in vec4 wTa
     return worldToTangentMatrix;
 }
 
+vec3 pbrModel(const in Light light,
+              const in vec3 wPosition,
+              const in vec3 wNormal,
+              const in vec3 wView,
+              const in vec3 baseColor,
+              const in float metalness,
+              const in float alpha,
+              const in float ambientOcclusion)
+{
+    // Calculate some useful quantities
+    vec3 n = wNormal;
+    vec3 s = vec3(0.0);
+    vec3 v = wView;
+    vec3 h = vec3(0.0);
+
+    float vDotN = dot(v, n);
+    float sDotN = 0.0;
+    float att = 1.0;
+
+    calculateLightingCoeffs(light, wPosition, n, v, s, h, sDotN, att);
+
+    // This light doesn't contribute anything
+    if (sDotN <= 0.0)
+        return vec3(0.0);
+
+    vec3 dielectricColor = vec3(0.04);
+    vec3 diffuseColor = baseColor * (vec3(1.0) - dielectricColor);
+    diffuseColor *= (1.0 - metalness);
+    vec3 F0 = mix(dielectricColor, baseColor, metalness); // = specularColor
+
+    // Compute reflectance.
+    float reflectance = max(max(F0.r, F0.g), F0.b);
+    vec3 F90 = clamp(reflectance * 25.0, 0.0, 1.0) * vec3(1.0);
+
+    // Compute shading terms
+    float vDotH = dot(v, h);
+    vec3 F = fresnelFactor(F0, F90, vDotH);
+
+    // Analytical (punctual) lighting
+    vec3 diffuseContrib = (vec3(1.0) - F) * diffuseBRDF(diffuseColor);
+    vec3 specularContrib = F * specularBRDF(n, h, sDotN, vDotN, alpha);
+
+    // Obtain final intensity as reflectance (BRDF) scaled by the energy of the light (cosine law)
+    vec3 color = att * sDotN * light.intensity * light.color.rgb
+                 * (diffuseContrib + specularContrib);
+
+    return color;
+}
+
 vec3 pbrIblModel(const in vec3 wNormal,
                  const in vec3 wView,
                  const in vec3 baseColor,
@@ -229,6 +353,26 @@ vec3 pbrMetalRoughFunction(const in vec4 baseColor,
                                 metalness,
                                 alpha,
                                 ambientOcclusion);
+
+    // A hardcoded light
+    Light light;
+    light.color = vec4(1.0, 1.0f, 1.0, 1.0);
+    light.worldDirection = normalize(vec3(0.2, -1.0, 0.0));
+    light.intensity = 5.0;
+    light.type = TYPE_DIRECTIONAL;
+    light.quadraticAttenuation = 1.0;
+    light.linearAttenuation = 0.0;
+    light.constantAttenuation = 0.0;
+
+    cLinear += pbrModel(light,
+                        worldPosition,
+                        worldNormal,
+                        worldView,
+                        baseColor.rgb,
+                        metalness,
+                        alpha,
+                        ambientOcclusion);
+
 
     // Apply ambient occlusion and emissive channels
     cLinear *= ambientOcclusion;
