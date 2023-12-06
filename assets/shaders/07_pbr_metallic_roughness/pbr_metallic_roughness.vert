@@ -6,12 +6,14 @@ layout(location = 1) in vec3 vertexNormal;
 #ifdef TEXCOORD_0_ENABLED
 layout(location = 2) in vec2 vertexTexCoord;
 #endif
+layout(location = 3) in vec4 vertexTangent;
 
 layout(location = 0) out vec3 worldPosition;
 layout(location = 1) out vec3 worldNormal;
 #ifdef TEXCOORD_0_ENABLED
 layout(location = 2) out vec2 texCoord;
 #endif
+layout(location = 3) out vec4 worldTangent;
 
 layout(set = 0, binding = 0) uniform Camera
 {
@@ -34,5 +36,6 @@ void main()
     worldPosition = (entity.model[gl_InstanceIndex] * vec4(vertexPosition, 1.0)).xyz;
     mat3 normalMatrix = mat3(transpose(inverse(entity.model[gl_InstanceIndex])));
     worldNormal = normalize(normalMatrix * vertexNormal);
+    worldTangent = vec4(normalize(entity.model[gl_InstanceIndex] * vec4(vertexTangent.xyz, float(0.0))).xyz, vertexTangent.w);
     gl_Position = camera.projection * camera.view * entity.model[gl_InstanceIndex] * vec4(vertexPosition, 1.0);
 }

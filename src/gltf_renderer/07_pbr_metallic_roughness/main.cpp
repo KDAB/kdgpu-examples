@@ -19,6 +19,7 @@ int main()
     auto cameraLayer = engine.createEngineLayer<CameraControllerLayer>();
     cameraLayer->window = exampleLayer->window();
     auto &controller = cameraLayer->cameraController();
+    controller.enabled = true;
     controller.pos = glm::vec3(0.0f, 0.7f, 2.0f);
     controller.yaw = -90.0f;
     controller.pitch = -10.0f;

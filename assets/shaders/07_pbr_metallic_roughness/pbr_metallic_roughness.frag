@@ -6,6 +6,7 @@ layout(location = 1) in vec3 worldNormal;
 #ifdef TEXCOORD_0_ENABLED
 layout(location = 2) in vec2 texCoord;
 #endif
+layout(location = 3) in vec4 worldTangent;
 
 layout(location = 0) out vec4 fragColor;
 
@@ -394,12 +395,15 @@ void main()
     float roughness = metallicRoughness.y * material.roughnessFactor;
     float ambientOcclusion = texture(ambientOcclusionMap, texCoord).r;
     vec4 emissive = texture(emissiveMap, texCoord).rgba * material.emissiveFactor;
+    vec3 normal = normalize(texture(normalMap, texCoord).rgb * float(2.0) - vec3(1.0,1.0,1.0));
+    normal = normalize(normal * calcWorldSpaceToTangentSpaceMatrix(worldNormal, worldTangent));
 #else
     vec4 baseColor = material.baseColorFactor;
     float metalness = material.metallicFactor;
     float roughness = material.roughnessFactor;
     float ambientOcclusion = 1.0f;
     vec4 emissive = material.emissiveFactor;
+    vec3 normal = worldNormal;
 #endif
 
 #ifdef ALPHA_CUTOFF_ENABLED
@@ -410,8 +414,8 @@ void main()
     vec3 cameraPosition = inverseView[3].xyz;
     vec3 worldView = normalize(cameraPosition - worldPosition);
 
-    vec3 envSpecularColor = textureLod(envLightSpecular, worldNormal, 0.0).rgb;
-    vec3 envDiffuseColor = texture(envLightIrradiance, worldNormal).rgb;
+    vec3 envSpecularColor = textureLod(envLightSpecular, normal, 0.0).rgb;
+    vec3 envDiffuseColor = texture(envLightIrradiance, normal).rgb;
 
     vec3 surfaceColor = baseColor.rgb;
 
@@ -444,7 +448,7 @@ void main()
                          emissive,
                          worldPosition,
                          worldView,
-                         worldNormal);
+                         normal);
 
     surfaceColor = reinhartTonemap(surfaceColor, 2.2);
 

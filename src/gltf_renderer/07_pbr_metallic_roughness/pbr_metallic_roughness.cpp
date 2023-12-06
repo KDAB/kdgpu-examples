@@ -676,7 +676,7 @@ void PbrMetallicRoughness::setupPrimitive(const tinygltf::Model &model,
     std::map<int, std::vector<uint32_t>> bufferViewToLayoutMap;
     std::map<uint32_t, std::vector<uint32_t>> layoutToAttributeMap;
 
-    const std::unordered_map<std::string, uint32_t> shaderLocations{ { "POSITION", 0 }, { "NORMAL", 1 }, { "TEXCOORD_0", 2 } };
+    const std::unordered_map<std::string, uint32_t> shaderLocations{ { "POSITION", 0 }, { "NORMAL", 1 }, { "TEXCOORD_0", 2 } , { "TANGENT", 3 }};
     bool hasTexCoords{ false };
 
     // Iterate over each attribute in the primitive to build up a description of the
