@@ -170,7 +170,7 @@ private:
     TextureAndView m_lutGGX;
     BindGroup m_environmentLightBindGroup;
 
-    std::unordered_map<Handle<GraphicsPipeline_t>, std::vector<MaterialPrimitives>> m_pipelinePrimitiveMap;
+    std::map<Handle<GraphicsPipeline_t>, std::vector<MaterialPrimitives>> m_pipelinePrimitiveMap;
 
     std::vector<Buffer> m_buffers;
     std::vector<TextureAndView> m_textures;
