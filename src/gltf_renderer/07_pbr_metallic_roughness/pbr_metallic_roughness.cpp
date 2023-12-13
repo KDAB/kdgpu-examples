@@ -12,6 +12,7 @@
 
 #include <KDUtils/file.h>
 
+#include <example_utility.h>
 #include <tinygltf_helper/tinygltf_helper.h>
 
 #include <glm/gtc/type_ptr.hpp>
@@ -27,24 +28,6 @@
 #include <string>
 
 namespace {
-
-inline std::string gltfModelPath()
-{
-#if defined(GLTF_RENDERER_MODEL_PATH)
-    return GLTF_RENDERER_MODEL_PATH;
-#else
-    return "";
-#endif
-}
-
-inline std::string assetPath()
-{
-#if defined(GLTF_RENDERER_ASSET_PATH)
-    return GLTF_RENDERER_ASSET_PATH;
-#else
-    return "";
-#endif
-}
 
 ktxResult loadKtxFile(const std::string &filename, ktxTexture **texture)
 {
@@ -75,9 +58,9 @@ void PbrMetallicRoughness::initializeScene()
     m_defaultNormal = createSolidColorTexture(0.5f, 0.5f, 1.0f, 1.0f);
     m_defaultSampler = m_device.createSampler();
 
-    m_environmentLightSpecular = createTextureFromKtxFile(assetPath() + "/textures/footprint_court/specular.ktx2");
-    m_environmentLightDiffuse = createTextureFromKtxFile(assetPath() + "/textures/footprint_court/diffuse.ktx2");
-    m_lutGGX = createTextureFromKtxFile(assetPath() + "/textures/lut_ggx.ktx2");
+    m_environmentLightSpecular = createTextureFromKtxFile(ExampleUtility::assetPath() + "/textures/footprint_court/specular.ktx2");
+    m_environmentLightDiffuse = createTextureFromKtxFile(ExampleUtility::assetPath() + "/textures/footprint_court/diffuse.ktx2");
+    m_lutGGX = createTextureFromKtxFile(ExampleUtility::assetPath() + "/textures/lut_ggx.ktx2");
 
     // Create bind group layout consisting of a single binding holding a UBO for the camera
     // clang-format off
@@ -171,12 +154,8 @@ void PbrMetallicRoughness::initializeScene()
 
     // Load the model
     tinygltf::Model model;
-    // const std::string modelPath("AntiqueCamera/glTF/AntiqueCamera.gltf");
-    // const std::string modelPath("BoxInterleaved/glTF/BoxInterleaved.gltf");
-    const std::string modelPath("FlightHelmet/glTF/FlightHelmet.gltf");
-    // const std::string modelPath("Sponza/glTF/Sponza.gltf");
-    // const std::string modelPath("Buggy/glTF/Buggy.gltf");
-    if (!TinyGltfHelper::loadModel(model, gltfModelPath() + modelPath))
+    const std::string modelPath("FlightHelmet/FlightHelmet.gltf");
+    if (!TinyGltfHelper::loadModel(model, ExampleUtility::gltfModelPath() + modelPath))
         return;
 
     // Load any gltf images (Textures) needed
@@ -909,7 +888,7 @@ Handle<ShaderModule_t> PbrMetallicRoughness::findOrCreateShaderModule(const Shad
     if (shaderModuleIt != m_shaderModules.end()) {
         return shaderModuleIt->second.handle();
     } else {
-        const auto shaderPath = assetPath() + "/shaders/07_pbr_metallic_roughness/" + shaderFilename(key.shaderOptionsKey, key.stage);
+        const auto shaderPath = ExampleUtility::assetPath() + "/shaders/07_pbr_metallic_roughness/" + shaderFilename(key.shaderOptionsKey, key.stage);
         ShaderModule shader = m_device.createShaderModule(KDGpuExample::readShaderFile(shaderPath));
         const auto shaderHandle = shader.handle();
         m_shaderModules.insert({ key, std::move(shader) });
