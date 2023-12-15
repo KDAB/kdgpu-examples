@@ -9,9 +9,10 @@ function(CompileShader target shader output)
             COMMAND ${GLSLANG_VALIDATOR} -V ${CMAKE_CURRENT_SOURCE_DIR}/${shader} -o ${output}
         )
     else()
+        list(SUBLIST ARGV 3 -1 REMAINING_ARGS)
         add_custom_command(OUTPUT ${output}
             DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${shader}
-            COMMAND ${GLSLANG_VALIDATOR} -V ${CMAKE_CURRENT_SOURCE_DIR}/${shader} -o ${output} ${ARGV3}
+            COMMAND ${GLSLANG_VALIDATOR} -V ${CMAKE_CURRENT_SOURCE_DIR}/${shader} -o ${output} ${REMAINING_ARGS}
         )
     endif()
 

@@ -56,19 +56,19 @@ def calculate_digits(bases, index)
 end
 
 def build_options_string(data, selected_options)
-  str = ""
+  options_array = []
   selected_options.each_with_index do |selected_option, index|
     # Don't add anything if option is disabled
     next if selected_option == :nil
 
     # If we have the special :defined option, then we add a -D option
     if selected_option == :defined
-      str += " -D#{data[:options][index][:define]}"
+      options_array << "-D#{data[:options][index][:define]}"
     else
-      str += " -D#{data[:options][index][:define]}=#{selected_option}"
+      options_array += "-D#{data[:options][index][:define]}=#{selected_option}"
     end
   end
-  return str.strip
+  return options_array.join(';')
 end
 
 def build_filename(shader, data, selected_options)
