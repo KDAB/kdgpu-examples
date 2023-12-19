@@ -554,8 +554,7 @@ void PbrMetallicRoughness::setupMaterial(const tinygltf::Model &model, uint32_t 
 {
     const tinygltf::Material &material = model.materials.at(materialIndex);
 
-    // Create a buffer and populate it with the material data. Just the base color factor
-    // and alpha cutoff will be implemented here for simplicity.
+    // Create a buffer and populate it with the pbr material data.
     const BufferOptions bufferOptions = {
         .size = 11 * sizeof(float),
         .usage = BufferUsageFlagBits::UniformBufferBit | BufferUsageFlagBits::TransferDstBit,
