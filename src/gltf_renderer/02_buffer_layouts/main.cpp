@@ -1,3 +1,13 @@
+/*
+  This file is part of KDGpu Examples.
+
+  SPDX-FileCopyrightText: 2023 Klarälvdalens Datakonsult AB, a KDAB Group company <info@kdab.com>
+
+  SPDX-License-Identifier: MIT
+
+  Contact KDAB at <info@kdab.com> for commercial licensing options.
+*/
+
 #include "buffer_layouts.h"
 
 #include <tinygltf_helper/camera_controller_layer.h>

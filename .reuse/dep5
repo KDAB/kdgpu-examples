@@ -1,0 +1,35 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: KDGpu Examples
+Upstream-Contact: Sean Harmer <sean.harmer@kdab.com>
+Source:
+
+#misc documentation
+Files: Readme.md
+Copyright: Klarälvdalens Datakonsult AB, a KDAB Group company <info@kdab.com>
+License: MIT
+
+#misc config files
+Files: .clang-format .clang-tidy .gitignore generate_shader_variants.rb
+Copyright: Klarälvdalens Datakonsult AB, a KDAB Group company <info@kdab.com>
+License: BSD-3-Clause
+
+#misc source code
+Files: CMakePresets.json
+Copyright: 2023 Klarälvdalens Datakonsult AB, a KDAB Group company <info@kdab.com>
+License: MIT
+
+#assrts (hdri)
+Files: assets/textures/footprint_court/*.ktx2
+Copyright: 2007-2012 Christian Bloch
+License: CC-BY-NC-SA-3.0
+
+#assets (shaders, textures)
+Files: assets/shaders/*.frag assets/shaders/*.vert assets/shaders/*.comp assets/shaders/*.hlsl assets/shaders/*.json assets/textures/particle01_rgba.ktx assets/textures/particle_gradient_rgba.ktx assets/textures/lut_ggx.ktx2
+Copyright: Klarälvdalens Datakonsult AB, a KDAB Group company <info@kdab.com>
+License: MIT
+
+# CACAO shaders
+Files: assets/shaders/*.h
+Copyright: 2020-2021 Advanced Micro Devices, Inc
+License: MIT
+

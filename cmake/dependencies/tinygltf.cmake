@@ -1,3 +1,11 @@
+# This file is part of KDGpu Examples.
+#
+# SPDX-FileCopyrightText: 2023 Klarälvdalens Datakonsult AB, a KDAB Group company <info@kdab.com>
+#
+# SPDX-License-Identifier: MIT
+#
+# Contact KDAB at <info@kdab.com> for commercial licensing options.
+#
 find_package(tinygltf 2.8.3 QUIET)
 
 if(NOT TARGET tinygltf::tingltf)
