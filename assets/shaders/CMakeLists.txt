@@ -1,6 +1,7 @@
 # This file is part of KDGpu Examples.
 #
-# SPDX-FileCopyrightText: 2023 Klarälvdalens Datakonsult AB, a KDAB Group company <info@kdab.com>
+# SPDX-FileCopyrightText: 2023 Klarälvdalens Datakonsult AB, a KDAB Group
+# company <info@kdab.com>
 #
 # SPDX-License-Identifier: MIT
 #
@@ -15,17 +16,21 @@ add_subdirectory(06_ffx_cacao)
 add_subdirectory(07_pbr_metallic_roughness)
 add_subdirectory(compute_n_body)
 if(KDGPU_BUILD_SLINT_EXAMPLE)
-    add_subdirectory(slint)
+  add_subdirectory(slint)
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    add_subdirectory(dma_buf_interop)
+  add_subdirectory(dma_buf_interop)
 endif()
+
+add_subdirectory(xr_multiview_model_viewer)
 
 add_custom_target(gltf_renderer_assets ALL)
 
 foreach(shader ${SHADER_FILES})
-    add_custom_command(TARGET gltf_renderer_assets POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-        ${CMAKE_CURRENT_SOURCE_DIR}/${shader} ${CMAKE_CURRENT_BINARY_DIR}/${shader})
+  add_custom_command(
+    TARGET gltf_renderer_assets
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${shader}
+            ${CMAKE_CURRENT_BINARY_DIR}/${shader})
 endforeach(shader)

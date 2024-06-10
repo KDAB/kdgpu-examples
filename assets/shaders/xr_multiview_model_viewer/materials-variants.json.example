@@ -1,0 +1,27 @@
+{
+    "options": [
+        {
+            "name": "hasTexCoords",
+            "define": "TEXCOORD_0_ENABLED"
+        },
+        {
+            "name": "enableAlphaCutoff",
+            "define": "ALPHA_CUTOFF_ENABLED"
+        },
+        {
+            "name": "taps",
+            "define": "BLUR_TAPS",
+            "values": [3, 5, 7, 9]
+        }
+    ],
+    "shaders": [
+        {
+            "filename": "materials.vert",
+            "options": [0, 1]
+        },
+        {
+            "filename": "materials.frag",
+            "options": [0, 1, 2]
+        }
+    ]
+}
