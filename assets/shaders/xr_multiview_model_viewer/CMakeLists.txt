@@ -6,7 +6,4 @@
 #
 # Contact KDAB at <info@kdab.com> for commercial licensing options.
 #
-add_subdirectory(gltf_renderer)
-add_subdirectory(compute_n_body)
-add_subdirectory(utility)
-add_subdirectory(xr)
+CompileShaderVariants(xr_multiview_model_viewer_shaders materials-variants.json)
