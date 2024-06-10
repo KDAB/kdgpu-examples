@@ -14,6 +14,7 @@ add_subdirectory(05_materials)
 add_subdirectory(compute_n_body)
 add_subdirectory(06_ffx_cacao)
 add_subdirectory(07_pbr_metallic_roughness)
+add_subdirectory(xr_multiview_model_viewer)
 
 add_custom_target(gltf_renderer_assets ALL)
 
