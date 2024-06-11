@@ -288,6 +288,7 @@ void ModelScene::initializeScene()
     m_fence = m_device->createFence({ .label = "Projection Layer Scene Fence" });
 
     initializeHands();
+    initializeRay();
 }
 
 void ModelScene::initializeHands()
@@ -404,13 +405,13 @@ void ModelScene::initializeHands()
         }}
     };
     // clang-format on
-    const BindGroupLayout handBindGroupLayout = m_device->createBindGroupLayout(handBindGroupLayoutOptions);
+    m_solidTransformBindGroupLayout = m_device->createBindGroupLayout(handBindGroupLayoutOptions);
 
     // Create a bindGroup to hold the UBO with the left hand transform
     // clang-format off
     const BindGroupOptions leftHandBindGroupOptions = {
         .label = "Left Hand Transform Bind Group",
-        .layout = handBindGroupLayout,
+        .layout = m_solidTransformBindGroupLayout,
         .resources = {{
             .binding = 0,
             .resource = UniformBufferBinding{ .buffer = m_leftHandTransformBuffer }
@@ -423,7 +424,7 @@ void ModelScene::initializeHands()
     // clang-format off
     const BindGroupOptions rightHandBindGroupOptions = {
         .label = "Right Hand Transform Bind Group",
-        .layout = handBindGroupLayout,
+        .layout = m_solidTransformBindGroupLayout,
         .resources = {{
             .binding = 0,
             .resource = UniformBufferBinding{ .buffer = m_rightHandTransformBuffer }
@@ -441,7 +442,7 @@ void ModelScene::initializeHands()
 
     const PipelineLayoutOptions pipelineLayoutOptions = {
         .label = "Hand Pipeline Layout",
-        .bindGroupLayouts = { handBindGroupLayout, m_cameraBindGroupLayout }
+        .bindGroupLayouts = { m_solidTransformBindGroupLayout, m_cameraBindGroupLayout }
     };
     m_handPipelineLayout = m_device->createPipelineLayout(pipelineLayoutOptions);
 
@@ -477,6 +478,102 @@ void ModelScene::initializeHands()
     };
     // clang-format on
     m_handPipeline = m_device->createGraphicsPipeline(pipelineOptions);
+}
+
+void ModelScene::initializeRay()
+{
+    struct Vertex {
+        glm::vec3 position;
+        glm::vec3 color;
+    };
+
+    // Create a buffer to hold triangle vertex data
+    {
+        // This is in model space which is y-up in this example. Note this is upside down vs the hello_triangle example which
+        // draws the triangle directly in NDC space which is y-down.
+        const float r = 0.8f;
+        const std::array<Vertex, 4> vertexData = {
+            Vertex{ // Bottom-left
+                    .position = { -0.01f, 0.0f, 0.0f },
+                    .color = { 0.0f, 0.0f, 0.0f } },
+            Vertex{ // Bottom-right
+                    .position = { 0.01f, 0.0f, 0.0f },
+                    .color = { 0.0f, 0.0f, 0.0f } },
+            Vertex{ // Top-Left
+                    .position = { -0.01f, 0.0f, 1.0f },
+                    .color = { 0.0f, 0.0f, 0.0f } },
+            Vertex{ // Top-Right
+                    .position = { 0.01f, 0.0f, 1.0f },
+                    .color = { 0.0f, 0.0f, 0.0f } }
+        };
+
+        const DeviceSize dataByteSize = vertexData.size() * sizeof(Vertex);
+        const BufferOptions bufferOptions = {
+            .label = "Ray vertex buffer",
+            .size = dataByteSize,
+            .usage = BufferUsageFlagBits::VertexBufferBit | BufferUsageFlagBits::TransferDstBit,
+            .memoryUsage = MemoryUsage::GpuOnly
+        };
+        m_rayVertexBuffer = m_device->createBuffer(bufferOptions);
+        const BufferUploadOptions uploadOptions = {
+            .destinationBuffer = m_rayVertexBuffer,
+            .dstStages = PipelineStageFlagBit::VertexAttributeInputBit,
+            .dstMask = AccessFlagBit::VertexAttributeReadBit,
+            .data = vertexData.data(),
+            .byteSize = dataByteSize
+        };
+        uploadBufferData(uploadOptions);
+    }
+
+    // Create a buffer to hold the geometry index data
+    {
+        std::array<uint32_t, 6> indexData = { 0, 1, 2, 1, 3, 2 };
+        const DeviceSize dataByteSize = indexData.size() * sizeof(uint32_t);
+        const BufferOptions bufferOptions = {
+            .label = "Index Buffer",
+            .size = dataByteSize,
+            .usage = BufferUsageFlagBits::IndexBufferBit | BufferUsageFlagBits::TransferDstBit,
+            .memoryUsage = MemoryUsage::GpuOnly
+        };
+        m_rayIndexBuffer = m_device->createBuffer(bufferOptions);
+        const BufferUploadOptions uploadOptions = {
+            .destinationBuffer = m_rayIndexBuffer,
+            .dstStages = PipelineStageFlagBit::IndexInputBit,
+            .dstMask = AccessFlagBit::IndexReadBit,
+            .data = indexData.data(),
+            .byteSize = dataByteSize
+        };
+        uploadBufferData(uploadOptions);
+    }
+
+    {
+        const BufferOptions bufferOptions = {
+            .label = "Left Ray Transformation Buffer",
+            .size = sizeof(glm::mat4),
+            .usage = BufferUsageFlagBits::UniformBufferBit,
+            .memoryUsage = MemoryUsage::CpuToGpu // So we can map it to CPU address space
+        };
+        m_leftRayTransformBuffer = m_device->createBuffer(bufferOptions);
+
+        // Upload identity matrix. Updated below in updateScene()
+        m_leftRayTransform = glm::mat4(1.0f);
+        auto bufferData = m_leftRayTransformBuffer.map();
+        std::memcpy(bufferData, &m_leftRayTransform, sizeof(glm::mat4));
+        m_leftRayTransformBuffer.unmap();
+    }
+
+    // Create a bindGroup to hold the UBO with the left hand transform
+    // clang-format off
+    const BindGroupOptions leftRayBindGroupOptions = {
+        .label = "Left Ray Transform Bind Group",
+        .layout = m_solidTransformBindGroupLayout,
+        .resources = {{
+            .binding = 0,
+            .resource = UniformBufferBinding{ .buffer = m_leftRayTransformBuffer }
+        }}
+    };
+    // clang-format on
+    m_leftRayTransformBindGroup = m_device->createBindGroup(leftRayBindGroupOptions);
 }
 
 Buffer ModelScene::createBufferForBufferView(const tinygltf::Model &model,
@@ -1253,6 +1350,12 @@ void ModelScene::renderView()
     opaquePass.setVertexBuffer(0, m_rightHandBuffer);
     opaquePass.setBindGroup(1, m_rightHandTransformBindGroup);
     opaquePass.drawIndexed(drawCmd);
+
+    // Draw the ray
+    opaquePass.setVertexBuffer(0, m_rayVertexBuffer);
+    opaquePass.setIndexBuffer(m_rayIndexBuffer);
+    opaquePass.setBindGroup(1, m_leftRayTransformBindGroup);
+    opaquePass.drawIndexed({ .indexCount = 6 });
 
     opaquePass.end();
     m_commandBuffer = commandRecorder.finish();
