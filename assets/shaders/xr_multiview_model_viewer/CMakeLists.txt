@@ -7,3 +7,5 @@
 # Contact KDAB at <info@kdab.com> for commercial licensing options.
 #
 CompileShaderVariants(xr_multiview_model_viewer_shaders materials-variants.json)
+
+CompileShaderSet(xr_multiview_model_viewer_solid solid)
