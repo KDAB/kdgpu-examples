@@ -67,6 +67,7 @@ private:
     KDXr::Action m_translateAction;
     KDXr::Action m_toggleTranslateModeAction;
     KDXr::Action m_buzzAction;
+    KDXr::Action m_palmPoseAction;
 
     const std::vector<std::string> m_handPaths{ "/user/hand/left", "/user/hand/right" };
 
@@ -77,4 +78,8 @@ private:
     KDXr::ActionStateBoolean m_toggleTranaslateModeActionState;
     int32_t m_buzzHand{ -1 };
     std::array<float, 2> m_buzzAmplitudes{ 0.0f, 0.0f };
+
+    std::array<KDXr::ActionStatePose, 2> m_palmPoseActionStates;
+    std::array<KDXr::ReferenceSpace, 2> m_palmPoseActionSpaces;
+    std::array<KDXr::SpaceState, 2> m_palmPoseActionSpaceStates;
 };
