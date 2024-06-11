@@ -45,14 +45,14 @@ void XrEngineLayer::onAttached()
                                                    .localizedName = "Translate",
                                                    .type = KDXr::ActionType::Vector2Input,
                                                    .subactionPaths = { m_handPaths[0] } });
-    m_toggleTranslateAction = m_actionSet.createAction({ .name = "toggletranslateaction",
-                                                         .localizedName = "toggleTranslateAction",
-                                                         .type = KDXr::ActionType::BooleanInput,
-                                                         .subactionPaths = { m_handPaths[0] } });
+    m_toggleTranslateModeAction = m_actionSet.createAction({ .name = "toggle_translate_mode_action",
+                                                             .localizedName = "toggleTranslateModeAction",
+                                                             .type = KDXr::ActionType::BooleanInput,
+                                                             .subactionPaths = { m_handPaths[0] } });
     m_buzzAction = m_actionSet.createAction({ .name = "buzz",
                                               .localizedName = "Buzz",
                                               .type = KDXr::ActionType::VibrationOutput,
-                                              .subactionPaths = { m_handPaths[0] } });
+                                              .subactionPaths = m_handPaths });
 
     // Suggest some bindings for the actions. NB: This assumes we are using a Meta Quest. If you are using a different
     // device, you will need to change the suggested bindings.
@@ -62,7 +62,8 @@ void XrEngineLayer::onAttached()
                 { .action = m_scaleAction, .binding = "/user/hand/right/input/thumbstick" },
                 { .action = m_translateAction, .binding = "/user/hand/left/input/thumbstick" },
                 { .action = m_buzzAction, .binding = "/user/hand/left/output/haptic" },
-                { .action = m_toggleTranslateAction, .binding = "/user/hand/left/input/x/click" } }
+                { .action = m_buzzAction, .binding = "/user/hand/right/output/haptic" },
+                { .action = m_toggleTranslateModeAction, .binding = "/user/hand/left/input/x/click" } }
     };
     if (m_xrInstance.suggestActionBindings(bindingOptions) != KDXr::SuggestActionBindingsResult::Success) {
         SPDLOG_LOGGER_ERROR(m_logger, "Failed to suggest action bindings.");
@@ -78,7 +79,7 @@ void XrEngineLayer::onAttached()
 void XrEngineLayer::onDetached()
 {
     m_translateAction = {};
-    m_toggleTranslateAction = {};
+    m_toggleTranslateModeAction = {};
     m_buzzAction = {};
     m_scaleAction = {};
     m_actionSet = {};
@@ -153,7 +154,15 @@ void XrEngineLayer::processTranslateAction()
             { .action = m_translateAction, .subactionPath = m_handPaths[0] }, m_translateActionState);
     if (translateResult == KDXr::GetActionStateResult::Success) {
         if (m_translateActionState.active) {
-            delta = dt * glm::vec3(m_translateActionState.currentState.x, m_translateActionState.currentState.y, 0.0f);
+            switch (m_translationMode) {
+            case TranslationMode::Vertical:
+                delta = dt * glm::vec3(m_translateActionState.currentState.x, m_translateActionState.currentState.y, 0.0f);
+                break;
+
+            case TranslationMode::Horizontal:
+                delta = dt * glm::vec3(m_translateActionState.currentState.x, 0.0f, -m_translateActionState.currentState.y);
+                break;
+            }
             delta *= m_linearSpeed;
         }
         m_projectionLayer->translation = m_projectionLayer->translation() + delta;
@@ -163,19 +172,32 @@ void XrEngineLayer::processTranslateAction()
 }
 void XrEngineLayer::processToggleTranslateAction()
 {
-    // Query the translate action from the left thumbstick
-    const float dt = engine()->deltaTimeSeconds();
-    glm::vec3 delta{ 0.0f, 0.0f, 0.0f };
-    const auto translateResult = m_session.getVector2State(
-            { .action = m_translateAction, .subactionPath = m_handPaths[0] }, m_translateActionState);
-    if (translateResult == KDXr::GetActionStateResult::Success) {
-        if (m_translateActionState.active) {
-            delta = dt * glm::vec3(m_translateActionState.currentState.x, m_translateActionState.currentState.y, 0.0f);
-            delta *= m_linearSpeed;
+    bool toggleTranslationMode{ false };
+    // Query the toggle animation action
+    const auto toggleTranslationModeResult = m_session.getBooleanState(
+            { .action = m_toggleTranslateModeAction, .subactionPath = m_handPaths[0] },
+            m_toggleTranaslateModeActionState);
+    if (toggleTranslationModeResult == KDXr::GetActionStateResult::Success) {
+        if (m_toggleTranaslateModeActionState.currentState &&
+            m_toggleTranaslateModeActionState.changedSinceLastSync &&
+            m_toggleTranaslateModeActionState.active) {
+            toggleTranslationMode = true;
+            m_buzzHand = 0;
         }
-        m_projectionLayer->translation = m_projectionLayer->translation() + delta;
     } else {
-        SPDLOG_LOGGER_ERROR(m_logger, "Failed to get translate action state.");
+        SPDLOG_LOGGER_ERROR(m_logger, "Failed to get toggle translate mode action state.");
+    }
+
+    // If the toggle animation action was pressed, toggle the animation and buzz the controller
+    if (toggleTranslationMode) {
+        if (m_translationMode == TranslationMode::Horizontal) {
+            m_translationMode = TranslationMode::Vertical;
+        } else {
+            m_translationMode = TranslationMode::Horizontal;
+        }
+
+        m_buzzAmplitudes[m_buzzHand] = 1.0f;
+        SPDLOG_LOGGER_INFO(m_logger, "Toggled translate mode = {}", static_cast<uint8_t>(m_translationMode));
     }
 }
 void XrEngineLayer::processHapticAction()

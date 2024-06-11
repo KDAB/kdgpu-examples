@@ -56,7 +56,7 @@ private:
     XrCylinderImGuiLayer *m_cylinderImguiLayer{ nullptr };
 
     enum class TranslationMode : std::uint8_t {
-        Horizontal,
+        Horizontal = 0,
         Vertical
     };
     TranslationMode m_translationMode{ TranslationMode::Horizontal };
@@ -65,7 +65,7 @@ private:
     KDXr::ActionSet m_actionSet;
     KDXr::Action m_scaleAction;
     KDXr::Action m_translateAction;
-    KDXr::Action m_toggleTranslateAction;
+    KDXr::Action m_toggleTranslateModeAction;
     KDXr::Action m_buzzAction;
 
     const std::vector<std::string> m_handPaths{ "/user/hand/left", "/user/hand/right" };
@@ -74,5 +74,7 @@ private:
     KDXr::ActionStateVector2 m_scaleActionState;
     float m_linearSpeed{ 1.0f };
     KDXr::ActionStateVector2 m_translateActionState;
+    KDXr::ActionStateBoolean m_toggleTranaslateModeActionState;
+    int32_t m_buzzHand{ -1 };
     std::array<float, 2> m_buzzAmplitudes{ 0.0f, 0.0f };
 };
