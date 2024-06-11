@@ -49,6 +49,10 @@ void XrEngineLayer::onAttached()
                                                          .localizedName = "toggleTranslateAction",
                                                          .type = KDXr::ActionType::BooleanInput,
                                                          .subactionPaths = { m_handPaths[0] } });
+    m_buzzAction = m_actionSet.createAction({ .name = "buzz",
+                                              .localizedName = "Buzz",
+                                              .type = KDXr::ActionType::VibrationOutput,
+                                              .subactionPaths = { m_handPaths[0] } });
 
     // Suggest some bindings for the actions. NB: This assumes we are using a Meta Quest. If you are using a different
     // device, you will need to change the suggested bindings.
@@ -57,6 +61,7 @@ void XrEngineLayer::onAttached()
         .suggestedBindings = {
                 { .action = m_scaleAction, .binding = "/user/hand/right/input/thumbstick" },
                 { .action = m_translateAction, .binding = "/user/hand/left/input/thumbstick" },
+                { .action = m_buzzAction, .binding = "/user/hand/left/output/haptic" },
                 { .action = m_toggleTranslateAction, .binding = "/user/hand/left/input/x/click" } }
     };
     if (m_xrInstance.suggestActionBindings(bindingOptions) != KDXr::SuggestActionBindingsResult::Success) {
@@ -74,6 +79,7 @@ void XrEngineLayer::onDetached()
 {
     m_translateAction = {};
     m_toggleTranslateAction = {};
+    m_buzzAction = {};
     m_scaleAction = {};
     m_actionSet = {};
 
@@ -116,6 +122,7 @@ void XrEngineLayer::pollActions(KDXr::Time predictedDisplayTime)
     processScaleAction();
     processTranslateAction();
     processToggleTranslateAction();
+    processHapticAction();
 }
 
 void XrEngineLayer::processScaleAction()
@@ -169,5 +176,24 @@ void XrEngineLayer::processToggleTranslateAction()
         m_projectionLayer->translation = m_projectionLayer->translation() + delta;
     } else {
         SPDLOG_LOGGER_ERROR(m_logger, "Failed to get translate action state.");
+    }
+}
+void XrEngineLayer::processHapticAction()
+{
+    // Apply any haptic feedback
+    for (uint32_t i = 0; i < 2; ++i) {
+        if (m_buzzAmplitudes[i] > 0.0f) {
+            const auto buzzOptions = KDXr::VibrationOutputOptions{
+                .action = m_buzzAction,
+                .subactionPath = m_handPaths[i],
+                .amplitude = m_buzzAmplitudes[i],
+            };
+            m_session.vibrateOutput(buzzOptions);
+
+            // Decay the amplitude
+            m_buzzAmplitudes[i] *= 0.5f;
+            if (m_buzzAmplitudes[i] < 0.01f)
+                m_buzzAmplitudes[i] = 0.0f;
+        }
     }
 }

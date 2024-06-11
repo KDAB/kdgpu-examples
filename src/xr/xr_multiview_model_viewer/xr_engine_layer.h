@@ -66,6 +66,7 @@ private:
     KDXr::Action m_scaleAction;
     KDXr::Action m_translateAction;
     KDXr::Action m_toggleTranslateAction;
+    KDXr::Action m_buzzAction;
 
     const std::vector<std::string> m_handPaths{ "/user/hand/left", "/user/hand/right" };
 
@@ -73,4 +74,5 @@ private:
     KDXr::ActionStateVector2 m_scaleActionState;
     float m_linearSpeed{ 1.0f };
     KDXr::ActionStateVector2 m_translateActionState;
+    std::array<float, 2> m_buzzAmplitudes{ 0.0f, 0.0f };
 };
