@@ -45,6 +45,10 @@ void XrEngineLayer::onAttached()
                                                    .localizedName = "Translate",
                                                    .type = KDXr::ActionType::Vector2Input,
                                                    .subactionPaths = { m_handPaths[0] } });
+    m_toggleTranslateAction = m_actionSet.createAction({ .name = "toggletranslateaction",
+                                                         .localizedName = "toggleTranslateAction",
+                                                         .type = KDXr::ActionType::BooleanInput,
+                                                         .subactionPaths = { m_handPaths[0] } });
 
     // Suggest some bindings for the actions. NB: This assumes we are using a Meta Quest. If you are using a different
     // device, you will need to change the suggested bindings.
@@ -52,7 +56,8 @@ void XrEngineLayer::onAttached()
         .interactionProfile = "/interaction_profiles/oculus/touch_controller",
         .suggestedBindings = {
                 { .action = m_scaleAction, .binding = "/user/hand/right/input/thumbstick" },
-                { .action = m_translateAction, .binding = "/user/hand/left/input/thumbstick" } }
+                { .action = m_translateAction, .binding = "/user/hand/left/input/thumbstick" },
+                { .action = m_toggleTranslateAction, .binding = "/user/hand/left/input/x/click" } }
     };
     if (m_xrInstance.suggestActionBindings(bindingOptions) != KDXr::SuggestActionBindingsResult::Success) {
         SPDLOG_LOGGER_ERROR(m_logger, "Failed to suggest action bindings.");
@@ -68,6 +73,7 @@ void XrEngineLayer::onAttached()
 void XrEngineLayer::onDetached()
 {
     m_translateAction = {};
+    m_toggleTranslateAction = {};
     m_scaleAction = {};
     m_actionSet = {};
 
@@ -109,6 +115,7 @@ void XrEngineLayer::pollActions(KDXr::Time predictedDisplayTime)
     // Poll the actions and do something with the results
     processScaleAction();
     processTranslateAction();
+    processToggleTranslateAction();
 }
 
 void XrEngineLayer::processScaleAction()
@@ -131,6 +138,23 @@ void XrEngineLayer::processScaleAction()
 }
 
 void XrEngineLayer::processTranslateAction()
+{
+    // Query the translate action from the left thumbstick
+    const float dt = engine()->deltaTimeSeconds();
+    glm::vec3 delta{ 0.0f, 0.0f, 0.0f };
+    const auto translateResult = m_session.getVector2State(
+            { .action = m_translateAction, .subactionPath = m_handPaths[0] }, m_translateActionState);
+    if (translateResult == KDXr::GetActionStateResult::Success) {
+        if (m_translateActionState.active) {
+            delta = dt * glm::vec3(m_translateActionState.currentState.x, m_translateActionState.currentState.y, 0.0f);
+            delta *= m_linearSpeed;
+        }
+        m_projectionLayer->translation = m_projectionLayer->translation() + delta;
+    } else {
+        SPDLOG_LOGGER_ERROR(m_logger, "Failed to get translate action state.");
+    }
+}
+void XrEngineLayer::processToggleTranslateAction()
 {
     // Query the translate action from the left thumbstick
     const float dt = engine()->deltaTimeSeconds();
