@@ -23,6 +23,7 @@
 #include <glm/glm.hpp>
 
 #include <array>
+#include <stdint.h>
 #include <vector>
 
 class ModelScene;
@@ -46,6 +47,7 @@ private:
     void processToggleAnimationAction();
     void processScaleAction();
     void processTranslateAction();
+    void processToggleTranslateAction();
     void processPalmPoseAction(KDXr::Time predictedDisplayTime);
     void processHapticAction();
 
@@ -53,10 +55,17 @@ private:
     XrQuadImGuiLayer *m_quadImguiLayer{ nullptr };
     XrCylinderImGuiLayer *m_cylinderImguiLayer{ nullptr };
 
+    enum class TranslationMode : std::uint8_t {
+        Horizontal,
+        Vertical
+    };
+    TranslationMode m_translationMode{ TranslationMode::Horizontal };
+
     // Input/output actions
     KDXr::ActionSet m_actionSet;
     KDXr::Action m_scaleAction;
     KDXr::Action m_translateAction;
+    KDXr::Action m_toggleTranslateAction;
 
     const std::vector<std::string> m_handPaths{ "/user/hand/left", "/user/hand/right" };
 
