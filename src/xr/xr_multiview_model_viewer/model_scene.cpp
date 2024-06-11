@@ -1214,7 +1214,17 @@ void ModelScene::renderView()
         }
     }
 
-    // Draw the hands/controllers
+    opaquePass.setPipeline(m_handPipeline);
+    // draw left hand triangle
+    opaquePass.setVertexBuffer(0, m_leftHandBuffer);
+    opaquePass.setBindGroup(1, m_leftHandTransformBindGroup);
+    const DrawIndexedCommand drawCmd = { .indexCount = 3 };
+    opaquePass.drawIndexed(drawCmd);
+
+    // Draw the right hand triangle
+    opaquePass.setVertexBuffer(0, m_rightHandBuffer);
+    opaquePass.setBindGroup(1, m_rightHandTransformBindGroup);
+    opaquePass.drawIndexed(drawCmd);
 
     opaquePass.end();
     m_commandBuffer = commandRecorder.finish();
