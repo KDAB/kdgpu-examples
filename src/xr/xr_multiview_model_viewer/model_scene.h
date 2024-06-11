@@ -126,6 +126,7 @@ public:
 
 protected:
     void initializeScene();
+    void initializeHands();
     void cleanupScene();
     void initialize() override;
     void cleanup() override;
@@ -215,4 +216,19 @@ private:
     RenderStats m_renderStats;
 
     Fence m_fence;
+
+    // Hand related resources
+    PipelineLayout m_handPipelineLayout;
+    GraphicsPipeline m_handPipeline;
+
+    Buffer m_leftHandBuffer;
+    Buffer m_rightHandBuffer;
+
+    glm::mat4 m_leftHandTransform;
+    Buffer m_leftHandTransformBuffer;
+    BindGroup m_leftHandTransformBindGroup;
+
+    glm::mat4 m_rightHandTransform;
+    Buffer m_rightHandTransformBuffer;
+    BindGroup m_rightHandTransformBindGroup;
 };

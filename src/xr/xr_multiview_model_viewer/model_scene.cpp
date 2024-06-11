@@ -40,7 +40,14 @@ ModelScene::ModelScene(const KDGpuExample::XrProjectionLayerOptions &options)
 {
     m_samples = SampleCountFlagBits::Samples8Bit;
 }
-
+inline std::string assetPath()
+{
+#if defined(KDGPU_ASSET_PATH)
+    return KDGPU_ASSET_PATH;
+#else
+    return "";
+#endif
+}
 void ModelScene::initializeScene()
 {
     // Create some default textures and samplers
@@ -279,6 +286,196 @@ void ModelScene::initializeScene()
     // shall wait for the fence to be signaled before we update any shared resources such as a view
     // matrix UBO (not used yet). An alternative would be to index into an array of such matrices.
     m_fence = m_device->createFence({ .label = "Projection Layer Scene Fence" });
+
+    initializeHands();
+}
+
+void ModelScene::initializeHands()
+{
+    struct Vertex {
+        glm::vec3 position;
+        glm::vec3 color;
+    };
+
+    // Create a buffer to hold triangle vertex data for the left controller
+    {
+        const std::array<Vertex, 3> vertexData = {
+            Vertex{ // Back-left, red
+                    .position = { -0.05f, 0.0f, 0.0f },
+                    .color = { 1.0f, 0.0f, 0.0f } },
+            Vertex{ // Back-right, red
+                    .position = { 0.05f, 0.0f, 0.0f },
+                    .color = { 1.0f, 0.0f, 0.0f } },
+            Vertex{ // Front-center, red
+                    .position = { 0.0f, 0.0f, -0.2f },
+                    .color = { 1.0f, 0.0f, 0.0f } }
+        };
+
+        const DeviceSize dataByteSize = vertexData.size() * sizeof(Vertex);
+        const BufferOptions bufferOptions = {
+            .label = "Left Hand Triangle Vertex Buffer",
+            .size = dataByteSize,
+            .usage = BufferUsageFlagBits::VertexBufferBit | BufferUsageFlagBits::TransferDstBit,
+            .memoryUsage = MemoryUsage::GpuOnly
+        };
+        m_leftHandBuffer = m_device->createBuffer(bufferOptions);
+        const BufferUploadOptions uploadOptions = {
+            .destinationBuffer = m_leftHandBuffer,
+            .dstStages = PipelineStageFlagBit::VertexAttributeInputBit,
+            .dstMask = AccessFlagBit::VertexAttributeReadBit,
+            .data = vertexData.data(),
+            .byteSize = dataByteSize
+        };
+        uploadBufferData(uploadOptions);
+    }
+
+    // Create a buffer to hold triangle vertex data for the right controller
+    {
+        const std::array<Vertex, 3> vertexData = {
+            Vertex{ // Back-left, blue
+                    .position = { -0.05f, 0.0f, 0.0f },
+                    .color = { 0.0f, 0.0f, 1.0f } },
+            Vertex{ // Back-right, blue
+                    .position = { 0.05f, 0.0f, 0.0f },
+                    .color = { 0.0f, 0.0f, 1.0f } },
+            Vertex{ // Front-center, blue
+                    .position = { 0.0f, 0.0f, -0.2f },
+                    .color = { 0.0f, 0.0f, 1.0f } }
+        };
+
+        const DeviceSize dataByteSize = vertexData.size() * sizeof(Vertex);
+        const BufferOptions bufferOptions = {
+            .label = "Right Hand Triangle Vertex Buffer",
+            .size = dataByteSize,
+            .usage = BufferUsageFlagBits::VertexBufferBit | BufferUsageFlagBits::TransferDstBit,
+            .memoryUsage = MemoryUsage::GpuOnly
+        };
+        m_rightHandBuffer = m_device->createBuffer(bufferOptions);
+        const BufferUploadOptions uploadOptions = {
+            .destinationBuffer = m_rightHandBuffer,
+            .dstStages = PipelineStageFlagBit::VertexAttributeInputBit,
+            .dstMask = AccessFlagBit::VertexAttributeReadBit,
+            .data = vertexData.data(),
+            .byteSize = dataByteSize
+        };
+        uploadBufferData(uploadOptions);
+    }
+    {
+        const BufferOptions bufferOptions = {
+            .label = "Left Hand Transformation Buffer",
+            .size = sizeof(glm::mat4),
+            .usage = BufferUsageFlagBits::UniformBufferBit,
+            .memoryUsage = MemoryUsage::CpuToGpu // So we can map it to CPU address space
+        };
+        m_leftHandTransformBuffer = m_device->createBuffer(bufferOptions);
+
+        // Upload identity matrix. Updated below in updateScene()
+        m_leftHandTransform = glm::mat4(1.0f);
+        auto bufferData = m_leftHandTransformBuffer.map();
+        std::memcpy(bufferData, &m_leftHandTransform, sizeof(glm::mat4));
+        m_leftHandTransformBuffer.unmap();
+    }
+
+    // Create a buffer to hold the right hand transformation matrix
+    {
+        const BufferOptions bufferOptions = {
+            .label = "Right Hand Transformation Buffer",
+            .size = sizeof(glm::mat4),
+            .usage = BufferUsageFlagBits::UniformBufferBit,
+            .memoryUsage = MemoryUsage::CpuToGpu // So we can map it to CPU address space
+        };
+        m_rightHandTransformBuffer = m_device->createBuffer(bufferOptions);
+
+        // Upload identity matrix. Updated below in updateScene()
+        m_rightHandTransform = glm::mat4(1.0f);
+        auto bufferData = m_rightHandTransformBuffer.map();
+        std::memcpy(bufferData, &m_rightHandTransform, sizeof(glm::mat4));
+        m_rightHandTransformBuffer.unmap();
+    }
+
+    // Create bind group layout consisting of a single binding holding a UBO for the entity transform
+    // clang-format off
+    const BindGroupLayoutOptions handBindGroupLayoutOptions = {
+        .label = "Hand Transform Bind Group",
+        .bindings = {{
+            .binding = 0,
+            .resourceType = ResourceBindingType::UniformBuffer,
+            .shaderStages = ShaderStageFlags(ShaderStageFlagBits::VertexBit)
+        }}
+    };
+    // clang-format on
+    const BindGroupLayout handBindGroupLayout = m_device->createBindGroupLayout(handBindGroupLayoutOptions);
+
+    // Create a bindGroup to hold the UBO with the left hand transform
+    // clang-format off
+    const BindGroupOptions leftHandBindGroupOptions = {
+        .label = "Left Hand Transform Bind Group",
+        .layout = handBindGroupLayout,
+        .resources = {{
+            .binding = 0,
+            .resource = UniformBufferBinding{ .buffer = m_leftHandTransformBuffer }
+        }}
+    };
+    // clang-format on
+    m_leftHandTransformBindGroup = m_device->createBindGroup(leftHandBindGroupOptions);
+
+    // Create a bindGroup to hold the UBO with the right hand transform
+    // clang-format off
+    const BindGroupOptions rightHandBindGroupOptions = {
+        .label = "Right Hand Transform Bind Group",
+        .layout = handBindGroupLayout,
+        .resources = {{
+            .binding = 0,
+            .resource = UniformBufferBinding{ .buffer = m_rightHandTransformBuffer }
+        }}
+    };
+    // clang-format on
+    m_rightHandTransformBindGroup = m_device->createBindGroup(rightHandBindGroupOptions);
+
+    // Create a pipeline to draw the hands with a solid color
+    const auto vertexShaderPath = ExampleUtility::assetPath() + "/shaders/xr_multiview_model_viewer/solid.vert.spv";
+    auto vertexShader = m_device->createShaderModule(KDGpuExample::readShaderFile(vertexShaderPath));
+
+    const auto fragmentShaderPath = ExampleUtility::assetPath() + "/shaders/xr_multiview_model_viewer/solid.frag.spv";
+    auto fragmentShader = m_device->createShaderModule(KDGpuExample::readShaderFile(fragmentShaderPath));
+
+    const PipelineLayoutOptions pipelineLayoutOptions = {
+        .label = "Hand Pipeline Layout",
+        .bindGroupLayouts = { handBindGroupLayout, m_cameraBindGroupLayout }
+    };
+    m_handPipelineLayout = m_device->createPipelineLayout(pipelineLayoutOptions);
+
+    // clang-format off
+    const GraphicsPipelineOptions pipelineOptions = {
+        .label = "Triangle",
+        .shaderStages = {
+            { .shaderModule = vertexShader, .stage = ShaderStageFlagBits::VertexBit },
+            { .shaderModule = fragmentShader, .stage = ShaderStageFlagBits::FragmentBit }
+        },
+        .layout = m_handPipelineLayout,
+        .vertex = {
+            .buffers = {
+                { .binding = 0, .stride = sizeof(Vertex) }
+            },
+            .attributes = {
+                { .location = 0, .binding = 0, .format = Format::R32G32B32_SFLOAT }, // Position
+                { .location = 1, .binding = 0, .format = Format::R32G32B32_SFLOAT, .offset = sizeof(glm::vec3) } // Color
+            }
+        },
+        .renderTargets = {
+            { .format = m_colorSwapchainFormat }
+        },
+        .depthStencil = {
+            .format = m_depthSwapchainFormat,
+            .depthWritesEnabled = true,
+            .depthCompareOperation = CompareOperation::Less
+        },
+        .primitive = {
+            .cullMode = CullModeFlagBits::None
+        }
+    };
+    // clang-format on
+    m_handPipeline = m_device->createGraphicsPipeline(pipelineOptions);
 }
 
 Buffer ModelScene::createBufferForBufferView(const tinygltf::Model &model,
@@ -831,6 +1028,15 @@ void ModelScene::setupMeshNode(const tinygltf::Model &model,
 
 void ModelScene::cleanupScene()
 {
+    m_rightHandTransformBindGroup = {};
+    m_rightHandTransformBuffer = {};
+    m_rightHandBuffer = {};
+    m_leftHandTransformBindGroup = {};
+    m_leftHandTransformBuffer = {};
+    m_leftHandBuffer = {};
+    m_handPipelineLayout = {};
+    m_handPipeline = {};
+
     m_msaaTextureView = {};
     m_msaaTexture = {};
     m_opaqueWhite = {};
@@ -1007,6 +1213,8 @@ void ModelScene::renderView()
             }
         }
     }
+
+    // Draw the hands/controllers
 
     opaquePass.end();
     m_commandBuffer = commandRecorder.finish();
