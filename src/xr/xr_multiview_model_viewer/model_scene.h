@@ -121,6 +121,8 @@ class ModelScene : public KDGpuExample::XrProjectionLayer
 public:
     KDBindings::Property<glm::vec3> translation{ glm::vec3(0.0f, 0.0f, -1.0f) };
     KDBindings::Property<float> scale{ 1.0f };
+    KDBindings::Property<KDXr::Pose> leftPalmPose{ KDXr::Pose{} };
+    KDBindings::Property<KDXr::Pose> rightPalmPose{ KDXr::Pose{} };
 
     ModelScene(const KDGpuExample::XrProjectionLayerOptions &options);
 

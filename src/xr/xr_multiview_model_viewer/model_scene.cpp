@@ -472,7 +472,8 @@ void ModelScene::initializeHands()
         },
         .primitive = {
             .cullMode = CullModeFlagBits::None
-        }
+        },
+        .viewCount = viewCount()
     };
     // clang-format on
     m_handPipeline = m_device->createGraphicsPipeline(pipelineOptions);
@@ -1110,6 +1111,28 @@ void ModelScene::updateScene()
         // clang-format on
     }
 
+    // Update the transformation matrix for the left hand from the pose
+    {
+        const auto &orientation = leftPalmPose().orientation;
+        glm::quat q(orientation.w, orientation.x, orientation.y, orientation.z);
+        glm::mat4 mRot = glm::toMat4(q);
+        const auto &position = leftPalmPose().position;
+        glm::vec3 p(position.x, position.y, position.z);
+        glm::mat4 mTrans = glm::translate(glm::mat4(1.0f), p);
+        m_leftHandTransform = mTrans * mRot;
+    }
+
+    // Update the transformation matrix for the right hand from the pose
+    {
+        const auto &orientation = rightPalmPose().orientation;
+        glm::quat q(orientation.w, orientation.x, orientation.y, orientation.z);
+        glm::mat4 mRot = glm::toMat4(q);
+        const auto &position = rightPalmPose().position;
+        glm::vec3 p(position.x, position.y, position.z);
+        glm::mat4 mTrans = glm::translate(glm::mat4(1.0f), p);
+        m_rightHandTransform = mTrans * mRot;
+    }
+
     // Update the transform for the entire model
     // TODO: Replace this hack with a simple scene graph.
     m_modelTransform = glm::mat4(1.0f);
@@ -1136,9 +1159,13 @@ void ModelScene::updateScene()
 
 void ModelScene::updateTransformUbo()
 {
-    // auto bufferData = m_transformBuffer.map();
-    // std::memcpy(bufferData, &m_transform, sizeof(glm::mat4));
-    // m_transformBuffer.unmap();
+    auto bufferData = m_leftHandTransformBuffer.map();
+    std::memcpy(bufferData, &m_leftHandTransform, sizeof(glm::mat4));
+    m_leftHandTransformBuffer.unmap();
+
+    bufferData = m_rightHandTransformBuffer.map();
+    std::memcpy(bufferData, &m_rightHandTransform, sizeof(glm::mat4));
+    m_rightHandTransformBuffer.unmap();
 }
 
 void ModelScene::updateViewUbo()
@@ -1215,6 +1242,7 @@ void ModelScene::renderView()
     }
 
     opaquePass.setPipeline(m_handPipeline);
+    opaquePass.setBindGroup(0, m_cameraBindGroup);
     // draw left hand triangle
     opaquePass.setVertexBuffer(0, m_leftHandBuffer);
     opaquePass.setBindGroup(1, m_leftHandTransformBindGroup);
