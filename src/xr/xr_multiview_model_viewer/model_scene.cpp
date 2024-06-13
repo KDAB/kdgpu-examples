@@ -48,6 +48,13 @@ inline std::string assetPath()
     return "";
 #endif
 }
+
+void ModelScene::toggleRay(Hand hand)
+{
+    const auto handIndex = static_cast<uint32_t>(hand);
+    m_rayHands[handIndex] = !m_rayHands[handIndex];
+}
+
 void ModelScene::initializeScene()
 {
     // Create some default textures and samplers
@@ -569,11 +576,40 @@ void ModelScene::initializeRay()
         .layout = m_solidTransformBindGroupLayout,
         .resources = {{
             .binding = 0,
-            .resource = UniformBufferBinding{ .buffer = m_leftRayTransformBuffer }
+            .resource = UniformBufferBinding{ .buffer = m_rightRayTransformBuffer }
         }}
     };
     // clang-format on
-    m_leftRayTransformBindGroup = m_device->createBindGroup(leftRayBindGroupOptions);
+    m_rightRayTransformBindGroup = m_device->createBindGroup(leftRayBindGroupOptions);
+
+    {
+        const BufferOptions bufferOptions = {
+            .label = "Right Ray Transformation Buffer",
+            .size = sizeof(glm::mat4),
+            .usage = BufferUsageFlagBits::UniformBufferBit,
+            .memoryUsage = MemoryUsage::CpuToGpu // So we can map it to CPU address space
+        };
+        m_rightRayTransformBuffer = m_device->createBuffer(bufferOptions);
+
+        // Upload identity matrix. Updated below in updateScene()
+        m_rightRayTransform = glm::mat4(1.0f);
+        auto bufferData = m_rightRayTransformBuffer.map();
+        std::memcpy(bufferData, &m_rightRayTransform, sizeof(glm::mat4));
+        m_rightRayTransformBuffer.unmap();
+    }
+
+    // Create a bindGroup to hold the UBO with the left hand transform
+    // clang-format off
+    const BindGroupOptions rightRayBindGroupOptions = {
+        .label = "Right Ray Transform Bind Group",
+        .layout = m_solidTransformBindGroupLayout,
+        .resources = {{
+            .binding = 0,
+            .resource = UniformBufferBinding{ .buffer = m_rightRayTransformBuffer }
+        }}
+    };
+    // clang-format on
+    m_leftRayTransformBindGroup = m_device->createBindGroup(rightRayBindGroupOptions);
 }
 
 Buffer ModelScene::createBufferForBufferView(const tinygltf::Model &model,
