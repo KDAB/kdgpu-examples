@@ -53,6 +53,10 @@ void ModelScene::toggleRay(Hand hand)
 {
     const auto handIndex = static_cast<uint32_t>(hand);
     m_rayHands[handIndex] = !m_rayHands[handIndex];
+
+    // Store the animation start time and mark the ray as being animated
+    m_rayAnimationData[handIndex].startTime = engine()->currentFrameTime();
+    m_rayAnimationData[handIndex].animating = true;
 }
 
 void ModelScene::initializeScene()
@@ -1254,8 +1258,23 @@ void ModelScene::updateScene()
         glm::mat4 mTrans = glm::translate(glm::mat4(1.0f), p);
         m_leftHandTransform = mTrans * mRot;
 
+        float length = 4.0f;
+        if (m_rayAnimationData[0].animating) {
+            const auto msecsSinceStart = (engine()->currentFrameTime() - m_rayAnimationData[0].startTime).count() / 1e6;
+            const float t = float(msecsSinceStart) / float(m_rayAnimationData[0].durationMs);
+            if (m_rayHands[0] == true) {
+                // Turning on animation
+                length *= std::powf(t, 3.0f);
+            } else {
+                // Turning off animation
+                length *= 1.0f - std::powf(t, 3.0f);
+            }
+
+            if (msecsSinceStart > m_rayAnimationData[0].durationMs)
+                m_rayAnimationData[0].animating = false;
+        }
         glm::mat4 mRayScaleAndOffset = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -0.2f));
-        mRayScaleAndOffset = glm::scale(mRayScaleAndOffset, glm::vec3(1.0f, 1.0f, 4.0f));
+        mRayScaleAndOffset = glm::scale(mRayScaleAndOffset, glm::vec3(1.0f, 1.0f, length));
         m_leftRayTransform = glm::mat4(1.0f);
         m_leftRayTransform = mTrans * mRot * mRayScaleAndOffset;
     }
@@ -1270,8 +1289,23 @@ void ModelScene::updateScene()
         glm::mat4 mTrans = glm::translate(glm::mat4(1.0f), p);
         m_rightHandTransform = mTrans * mRot;
 
+        float length = 4.0f;
+        if (m_rayAnimationData[1].animating) {
+            const auto msecsSinceStart = (engine()->currentFrameTime() - m_rayAnimationData[1].startTime).count() / 1e6;
+            const float t = float(msecsSinceStart) / float(m_rayAnimationData[1].durationMs);
+            if (m_rayHands[1] == true) {
+                // Turning on animation
+                length *= std::powf(t, 3.0f);
+            } else {
+                // Turning off animation
+                length *= 1.0f - std::powf(t, 3.0f);
+            }
+
+            if (msecsSinceStart > m_rayAnimationData[1].durationMs)
+                m_rayAnimationData[1].animating = false;
+        }
         glm::mat4 mRayScaleAndOffset = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -0.2f));
-        mRayScaleAndOffset = glm::scale(mRayScaleAndOffset, glm::vec3(1.0f, 1.0f, 4.0f));
+        mRayScaleAndOffset = glm::scale(mRayScaleAndOffset, glm::vec3(1.0f, 1.0f, length));
         m_rightRayTransform = glm::mat4(1.0f);
         m_rightRayTransform = mTrans * mRot * mRayScaleAndOffset;
     }
@@ -1408,11 +1442,11 @@ void ModelScene::renderView()
     // Draw the ray
     opaquePass.setVertexBuffer(0, m_rayVertexBuffer);
     opaquePass.setIndexBuffer(m_rayIndexBuffer);
-    if (m_rayHands[0]) {
+    if (m_rayHands[0] || m_rayAnimationData[0].animating) {
         opaquePass.setBindGroup(1, m_leftRayTransformBindGroup);
         opaquePass.drawIndexed({ .indexCount = 6 });
     }
-    if (m_rayHands[1]) {
+    if (m_rayHands[1] || m_rayAnimationData[1].animating) {
         opaquePass.setBindGroup(1, m_rightRayTransformBindGroup);
         opaquePass.drawIndexed({ .indexCount = 6 });
     }

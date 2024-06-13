@@ -15,6 +15,7 @@
 
 #include <tinygltf_helper/camera.h>
 
+#include <KDGpuExample/engine.h>
 #include <KDGpuExample/xr_compositor/xr_projection_layer.h>
 
 #include <KDGpu/bind_group.h>
@@ -257,4 +258,10 @@ private:
     BindGroup m_rightRayTransformBindGroup;
 
     std::array<bool, 2> m_rayHands{ false, false };
+    struct AnimationData {
+        TimePoint startTime;
+        uint32_t durationMs{ 1000 };
+        bool animating{ false };
+    };
+    std::array<AnimationData, 2> m_rayAnimationData;
 };
