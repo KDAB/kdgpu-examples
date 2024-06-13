@@ -126,6 +126,12 @@ public:
 
     ModelScene(const KDGpuExample::XrProjectionLayerOptions &options);
 
+    enum class Hand : std::uint8_t {
+        Left = 0,
+        Right
+    };
+    void toggleRay(Hand hand);
+
 protected:
     void initializeScene();
     void initializeHands();
@@ -245,4 +251,10 @@ private:
     glm::mat4 m_leftRayTransform;
     Buffer m_leftRayTransformBuffer;
     BindGroup m_leftRayTransformBindGroup;
+
+    glm::mat4 m_rightRayTransform;
+    Buffer m_rightRayTransformBuffer;
+    BindGroup m_rightRayTransformBindGroup;
+
+    std::array<bool, 2> m_rayHands{ false, false };
 };
