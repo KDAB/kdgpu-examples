@@ -53,6 +53,14 @@ void XrEngineLayer::onAttached()
                                                   .localizedName = "Palm Pose",
                                                   .type = KDXr::ActionType::PoseInput,
                                                   .subactionPaths = m_handPaths });
+    m_toggleRightRayAction = m_actionSet.createAction({ .name = "toggle_right_ray",
+                                                        .localizedName = "Toggle Right Ray",
+                                                        .type = KDXr::ActionType::FloatInput,
+                                                        .subactionPaths = { m_handPaths[1] } });
+    m_toggleLeftRayAction = m_actionSet.createAction({ .name = "toggle_left_ray",
+                                                       .localizedName = "Toggle Left Ray",
+                                                       .type = KDXr::ActionType::FloatInput,
+                                                       .subactionPaths = { m_handPaths[0] } });
     m_buzzAction = m_actionSet.createAction({ .name = "buzz",
                                               .localizedName = "Buzz",
                                               .type = KDXr::ActionType::VibrationOutput,
@@ -74,6 +82,8 @@ void XrEngineLayer::onAttached()
                 { .action = m_buzzAction, .binding = "/user/hand/right/output/haptic" },
                 { .action = m_palmPoseAction, .binding = "/user/hand/left/input/aim/pose" },
                 { .action = m_palmPoseAction, .binding = "/user/hand/right/input/aim/pose" },
+                { .action = m_toggleRightRayAction, .binding = "/user/hand/right/input/squeeze/value" },
+                { .action = m_toggleLeftRayAction, .binding = "/user/hand/left/input/squeeze/value" },
                 { .action = m_toggleTranslateModeAction, .binding = "/user/hand/left/input/x/click" } }
     };
     if (m_xrInstance.suggestActionBindings(bindingOptions) != KDXr::SuggestActionBindingsResult::Success) {
@@ -93,6 +103,8 @@ void XrEngineLayer::onDetached()
     m_toggleTranslateModeAction = {};
     m_palmPoseAction = {};
     m_buzzAction = {};
+    m_toggleLeftRayAction = {};
+    m_toggleRightRayAction = {};
     m_scaleAction = {};
     m_actionSet = {};
 
@@ -133,6 +145,8 @@ void XrEngineLayer::pollActions(KDXr::Time predictedDisplayTime)
 
     // Poll the actions and do something with the results
     processScaleAction();
+    processToggleLeftRay();
+    processToggleRightRay();
     processTranslateAction();
     processToggleTranslateAction();
     processPalmPoseAction(predictedDisplayTime);
@@ -213,6 +227,50 @@ void XrEngineLayer::processToggleTranslateAction()
         SPDLOG_LOGGER_INFO(m_logger, "Toggled translate mode = {}", static_cast<uint8_t>(m_translationMode));
     }
 }
+void XrEngineLayer::processToggleRightRay()
+{
+    // Query the toggle ray action from the right squeeze value
+    float squeeze = 0.0f;
+    static bool armed = true;
+    const auto squeezeResult = m_session.getFloatState({ .action = m_toggleRightRayAction, .subactionPath = m_handPaths[1] }, m_toggleRightRayActionState);
+    if (squeezeResult == KDXr::GetActionStateResult::Success) {
+        if (m_scaleActionState.active) {
+            squeeze = m_toggleRightRayActionState.currentState;
+            if (armed && squeeze > 0.9f) {
+                m_projectionLayer->toggleRay(ModelScene::Hand::Right);
+                armed = false;
+            }
+
+            if (!armed && squeeze == 0.0f)
+                armed = true;
+        }
+    } else {
+        SPDLOG_LOGGER_ERROR(m_logger, "Failed to get scale action state.");
+    }
+}
+
+void XrEngineLayer::processToggleLeftRay()
+{
+    // Query the toggle ray action from the left squeeze value
+    float squeeze = 0.0f;
+    static bool armed = true;
+    const auto squeezeResult = m_session.getFloatState({ .action = m_toggleLeftRayAction, .subactionPath = m_handPaths[0] }, m_toggleLeftRayActionState);
+    if (squeezeResult == KDXr::GetActionStateResult::Success) {
+        if (m_scaleActionState.active) {
+            squeeze = m_toggleLeftRayActionState.currentState;
+            if (armed && squeeze > 0.9f) {
+                m_projectionLayer->toggleRay(ModelScene::Hand::Left);
+                armed = false;
+            }
+
+            if (!armed && squeeze == 0.0f)
+                armed = true;
+        }
+    } else {
+        SPDLOG_LOGGER_ERROR(m_logger, "Failed to get scale action state.");
+    }
+}
+
 void XrEngineLayer::processHapticAction()
 {
     // Apply any haptic feedback
