@@ -576,11 +576,11 @@ void ModelScene::initializeRay()
         .layout = m_solidTransformBindGroupLayout,
         .resources = {{
             .binding = 0,
-            .resource = UniformBufferBinding{ .buffer = m_rightRayTransformBuffer }
+            .resource = UniformBufferBinding{ .buffer = m_leftRayTransformBuffer }
         }}
     };
     // clang-format on
-    m_rightRayTransformBindGroup = m_device->createBindGroup(leftRayBindGroupOptions);
+    m_leftRayTransformBindGroup = m_device->createBindGroup(leftRayBindGroupOptions);
 
     {
         const BufferOptions bufferOptions = {
@@ -609,7 +609,7 @@ void ModelScene::initializeRay()
         }}
     };
     // clang-format on
-    m_leftRayTransformBindGroup = m_device->createBindGroup(rightRayBindGroupOptions);
+    m_rightRayTransformBindGroup = m_device->createBindGroup(rightRayBindGroupOptions);
 }
 
 Buffer ModelScene::createBufferForBufferView(const tinygltf::Model &model,
@@ -1244,7 +1244,7 @@ void ModelScene::updateScene()
         // clang-format on
     }
 
-    // Update the transformation matrix for the left hand from the pose
+    // Update the transformation matrix for the left hand and ray from the pose
     {
         const auto &orientation = leftPalmPose().orientation;
         glm::quat q(orientation.w, orientation.x, orientation.y, orientation.z);
@@ -1260,7 +1260,7 @@ void ModelScene::updateScene()
         m_leftRayTransform = mTrans * mRot * mRayScaleAndOffset;
     }
 
-    // Update the transformation matrix for the right hand from the pose
+    // Update the transformation matrix for the right hand and ray from the pose
     {
         const auto &orientation = rightPalmPose().orientation;
         glm::quat q(orientation.w, orientation.x, orientation.y, orientation.z);
@@ -1269,6 +1269,11 @@ void ModelScene::updateScene()
         glm::vec3 p(position.x, position.y, position.z);
         glm::mat4 mTrans = glm::translate(glm::mat4(1.0f), p);
         m_rightHandTransform = mTrans * mRot;
+
+        glm::mat4 mRayScaleAndOffset = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -0.2f));
+        mRayScaleAndOffset = glm::scale(mRayScaleAndOffset, glm::vec3(1.0f, 1.0f, 4.0f));
+        m_rightRayTransform = glm::mat4(1.0f);
+        m_rightRayTransform = mTrans * mRot * mRayScaleAndOffset;
     }
 
     // Update the transform for the entire model
@@ -1401,15 +1406,13 @@ void ModelScene::renderView()
     opaquePass.drawIndexed(drawCmd);
 
     // Draw the ray
+    opaquePass.setVertexBuffer(0, m_rayVertexBuffer);
+    opaquePass.setIndexBuffer(m_rayIndexBuffer);
     if (m_rayHands[0]) {
-        opaquePass.setVertexBuffer(0, m_rayVertexBuffer);
-        opaquePass.setIndexBuffer(m_rayIndexBuffer);
         opaquePass.setBindGroup(1, m_leftRayTransformBindGroup);
         opaquePass.drawIndexed({ .indexCount = 6 });
     }
     if (m_rayHands[1]) {
-        opaquePass.setVertexBuffer(0, m_rayVertexBuffer);
-        opaquePass.setIndexBuffer(m_rayIndexBuffer);
         opaquePass.setBindGroup(1, m_rightRayTransformBindGroup);
         opaquePass.drawIndexed({ .indexCount = 6 });
     }

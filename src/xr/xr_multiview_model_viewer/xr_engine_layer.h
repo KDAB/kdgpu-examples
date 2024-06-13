@@ -48,6 +48,8 @@ private:
     void processScaleAction();
     void processTranslateAction();
     void processToggleTranslateAction();
+    void processToggleRightRay();
+    void processToggleLeftRay();
     void processPalmPoseAction(KDXr::Time predictedDisplayTime);
     void processHapticAction();
 
@@ -68,6 +70,8 @@ private:
     KDXr::Action m_toggleTranslateModeAction;
     KDXr::Action m_buzzAction;
     KDXr::Action m_palmPoseAction;
+    KDXr::Action m_toggleRightRayAction;
+    KDXr::Action m_toggleLeftRayAction;
 
     const std::vector<std::string> m_handPaths{ "/user/hand/left", "/user/hand/right" };
 
@@ -78,6 +82,8 @@ private:
     KDXr::ActionStateBoolean m_toggleTranaslateModeActionState;
     int32_t m_buzzHand{ -1 };
     std::array<float, 2> m_buzzAmplitudes{ 0.0f, 0.0f };
+    KDXr::ActionStateFloat m_toggleRightRayActionState;
+    KDXr::ActionStateFloat m_toggleLeftRayActionState;
 
     std::array<KDXr::ActionStatePose, 2> m_palmPoseActionStates;
     std::array<KDXr::ReferenceSpace, 2> m_palmPoseActionSpaces;
