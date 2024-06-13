@@ -500,10 +500,10 @@ void ModelScene::initializeRay()
                     .position = { 0.01f, 0.0f, 0.0f },
                     .color = { 0.0f, 0.0f, 0.0f } },
             Vertex{ // Top-Left
-                    .position = { -0.01f, 0.0f, 1.0f },
+                    .position = { -0.01f, 0.0f, -1.0f },
                     .color = { 0.0f, 0.0f, 0.0f } },
             Vertex{ // Top-Right
-                    .position = { 0.01f, 0.0f, 1.0f },
+                    .position = { 0.01f, 0.0f, -1.0f },
                     .color = { 0.0f, 0.0f, 0.0f } }
         };
 
@@ -1217,6 +1217,11 @@ void ModelScene::updateScene()
         glm::vec3 p(position.x, position.y, position.z);
         glm::mat4 mTrans = glm::translate(glm::mat4(1.0f), p);
         m_leftHandTransform = mTrans * mRot;
+
+        glm::mat4 mRayScaleAndOffset = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -0.2f));
+        mRayScaleAndOffset = glm::scale(mRayScaleAndOffset, glm::vec3(1.0f, 1.0f, 4.0f));
+        m_leftRayTransform = glm::mat4(1.0f);
+        m_leftRayTransform = mTrans * mRot * mRayScaleAndOffset;
     }
 
     // Update the transformation matrix for the right hand from the pose
@@ -1263,6 +1268,14 @@ void ModelScene::updateTransformUbo()
     bufferData = m_rightHandTransformBuffer.map();
     std::memcpy(bufferData, &m_rightHandTransform, sizeof(glm::mat4));
     m_rightHandTransformBuffer.unmap();
+
+    bufferData = m_leftRayTransformBuffer.map();
+    std::memcpy(bufferData, &m_leftRayTransform, sizeof(glm::mat4));
+    m_leftRayTransformBuffer.unmap();
+
+    // bufferData = m_rightRayTransformBuffer.map();
+    // std::memcpy(bufferData, &m_rightRayTransform, sizeof(glm::mat4));
+    // m_rightRayTransformBuffer.unmap();
 }
 
 void ModelScene::updateViewUbo()
