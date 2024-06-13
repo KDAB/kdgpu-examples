@@ -1309,9 +1309,9 @@ void ModelScene::updateTransformUbo()
     std::memcpy(bufferData, &m_leftRayTransform, sizeof(glm::mat4));
     m_leftRayTransformBuffer.unmap();
 
-    // bufferData = m_rightRayTransformBuffer.map();
-    // std::memcpy(bufferData, &m_rightRayTransform, sizeof(glm::mat4));
-    // m_rightRayTransformBuffer.unmap();
+    bufferData = m_rightRayTransformBuffer.map();
+    std::memcpy(bufferData, &m_rightRayTransform, sizeof(glm::mat4));
+    m_rightRayTransformBuffer.unmap();
 }
 
 void ModelScene::updateViewUbo()
@@ -1401,10 +1401,18 @@ void ModelScene::renderView()
     opaquePass.drawIndexed(drawCmd);
 
     // Draw the ray
-    opaquePass.setVertexBuffer(0, m_rayVertexBuffer);
-    opaquePass.setIndexBuffer(m_rayIndexBuffer);
-    opaquePass.setBindGroup(1, m_leftRayTransformBindGroup);
-    opaquePass.drawIndexed({ .indexCount = 6 });
+    if (m_rayHands[0]) {
+        opaquePass.setVertexBuffer(0, m_rayVertexBuffer);
+        opaquePass.setIndexBuffer(m_rayIndexBuffer);
+        opaquePass.setBindGroup(1, m_leftRayTransformBindGroup);
+        opaquePass.drawIndexed({ .indexCount = 6 });
+    }
+    if (m_rayHands[1]) {
+        opaquePass.setVertexBuffer(0, m_rayVertexBuffer);
+        opaquePass.setIndexBuffer(m_rayIndexBuffer);
+        opaquePass.setBindGroup(1, m_rightRayTransformBindGroup);
+        opaquePass.drawIndexed({ .indexCount = 6 });
+    }
 
     opaquePass.end();
     m_commandBuffer = commandRecorder.finish();
