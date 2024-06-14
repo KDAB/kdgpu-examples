@@ -3,9 +3,6 @@
 #extension GL_EXT_multiview : enable
 
 layout(location = 0) in vec3 vertexPosition;
-layout(location = 1) in vec3 vertexColor;
-
-layout(location = 0) out vec3 color;
 
 struct CameraData {
     mat4 view;
@@ -26,6 +23,5 @@ entity;
 
 void main()
 {
-    color = vertexColor;
     gl_Position = camera.data[gl_ViewIndex].projection * camera.data[gl_ViewIndex].view * entity.modelMatrix * vec4(vertexPosition, 1.0);
 }

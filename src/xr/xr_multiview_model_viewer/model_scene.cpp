@@ -306,21 +306,14 @@ void ModelScene::initializeHands()
 {
     struct Vertex {
         glm::vec3 position;
-        glm::vec3 color;
     };
 
     // Create a buffer to hold triangle vertex data for the left controller
     {
         const std::array<Vertex, 3> vertexData = {
-            Vertex{ // Back-left, red
-                    .position = { -0.05f, 0.0f, 0.0f },
-                    .color = { 1.0f, 0.0f, 0.0f } },
-            Vertex{ // Back-right, red
-                    .position = { 0.05f, 0.0f, 0.0f },
-                    .color = { 1.0f, 0.0f, 0.0f } },
-            Vertex{ // Front-center, red
-                    .position = { 0.0f, 0.0f, -0.2f },
-                    .color = { 1.0f, 0.0f, 0.0f } }
+            Vertex{ .position = { -0.05f, 0.0f, 0.0f } }, // Back-left, red
+            Vertex{ .position = { 0.05f, 0.0f, 0.0f } }, // Back-right, red
+            Vertex{ .position = { 0.0f, 0.0f, -0.2f } } // Front-center, red
         };
 
         const DeviceSize dataByteSize = vertexData.size() * sizeof(Vertex);
@@ -344,15 +337,9 @@ void ModelScene::initializeHands()
     // Create a buffer to hold triangle vertex data for the right controller
     {
         const std::array<Vertex, 3> vertexData = {
-            Vertex{ // Back-left, blue
-                    .position = { -0.05f, 0.0f, 0.0f },
-                    .color = { 0.0f, 0.0f, 1.0f } },
-            Vertex{ // Back-right, blue
-                    .position = { 0.05f, 0.0f, 0.0f },
-                    .color = { 0.0f, 0.0f, 1.0f } },
-            Vertex{ // Front-center, blue
-                    .position = { 0.0f, 0.0f, -0.2f },
-                    .color = { 0.0f, 0.0f, 1.0f } }
+            Vertex{ .position = { -0.05f, 0.0f, 0.0f } }, // Back-left, blue
+            Vertex{ .position = { 0.05f, 0.0f, 0.0f } }, // Back-right, blue
+            Vertex{ .position = { 0.0f, 0.0f, -0.2f } }, // Front-center, blue
         };
 
         const DeviceSize dataByteSize = vertexData.size() * sizeof(Vertex);
@@ -453,7 +440,8 @@ void ModelScene::initializeHands()
 
     const PipelineLayoutOptions pipelineLayoutOptions = {
         .label = "Hand Pipeline Layout",
-        .bindGroupLayouts = { m_solidTransformBindGroupLayout, m_cameraBindGroupLayout }
+        .bindGroupLayouts = { m_solidTransformBindGroupLayout, m_cameraBindGroupLayout },
+        .pushConstantRanges = { m_colorPushConstantRange }
     };
     m_handPipelineLayout = m_device->createPipelineLayout(pipelineLayoutOptions);
 
@@ -470,8 +458,7 @@ void ModelScene::initializeHands()
                 { .binding = 0, .stride = sizeof(Vertex) }
             },
             .attributes = {
-                { .location = 0, .binding = 0, .format = Format::R32G32B32_SFLOAT }, // Position
-                { .location = 1, .binding = 0, .format = Format::R32G32B32_SFLOAT, .offset = sizeof(glm::vec3) } // Color
+                { .location = 0, .binding = 0, .format = Format::R32G32B32_SFLOAT } // Position
             }
         },
         .renderTargets = {
@@ -495,27 +482,17 @@ void ModelScene::initializeRay()
 {
     struct Vertex {
         glm::vec3 position;
-        glm::vec3 color;
     };
 
     // Create a buffer to hold triangle vertex data
     {
         // This is in model space which is y-up in this example. Note this is upside down vs the hello_triangle example which
         // draws the triangle directly in NDC space which is y-down.
-        const float r = 0.8f;
         const std::array<Vertex, 4> vertexData = {
-            Vertex{ // Bottom-left
-                    .position = { -0.01f, 0.0f, 0.0f },
-                    .color = { 0.0f, 0.0f, 0.0f } },
-            Vertex{ // Bottom-right
-                    .position = { 0.01f, 0.0f, 0.0f },
-                    .color = { 0.0f, 0.0f, 0.0f } },
-            Vertex{ // Top-Left
-                    .position = { -0.01f, 0.0f, -1.0f },
-                    .color = { 0.0f, 0.0f, 0.0f } },
-            Vertex{ // Top-Right
-                    .position = { 0.01f, 0.0f, -1.0f },
-                    .color = { 0.0f, 0.0f, 0.0f } }
+            Vertex{ .position = { -0.01f, 0.0f, 0.0f } }, // Bottom-left
+            Vertex{ .position = { 0.01f, 0.0f, 0.0f } }, // Bottom-right
+            Vertex{ .position = { -0.01f, 0.0f, -1.0f } }, // Top-Left
+            Vertex{ .position = { 0.01f, 0.0f, -1.0f } }, // Top-Right
         };
 
         const DeviceSize dataByteSize = vertexData.size() * sizeof(Vertex);
@@ -1431,12 +1408,14 @@ void ModelScene::renderView()
     // draw left hand triangle
     opaquePass.setVertexBuffer(0, m_leftHandBuffer);
     opaquePass.setBindGroup(1, m_leftHandTransformBindGroup);
+    opaquePass.pushConstant(m_colorPushConstantRange, &m_leftHandColor);
     const DrawIndexedCommand drawCmd = { .indexCount = 3 };
     opaquePass.drawIndexed(drawCmd);
 
     // Draw the right hand triangle
     opaquePass.setVertexBuffer(0, m_rightHandBuffer);
     opaquePass.setBindGroup(1, m_rightHandTransformBindGroup);
+    opaquePass.pushConstant(m_colorPushConstantRange, &m_rightHandColor);
     opaquePass.drawIndexed(drawCmd);
 
     // Draw the ray
@@ -1444,10 +1423,12 @@ void ModelScene::renderView()
     opaquePass.setIndexBuffer(m_rayIndexBuffer);
     if (m_rayHands[0] || m_rayAnimationData[0].animating) {
         opaquePass.setBindGroup(1, m_leftRayTransformBindGroup);
+        opaquePass.pushConstant(m_colorPushConstantRange, &m_leftRayColor);
         opaquePass.drawIndexed({ .indexCount = 6 });
     }
     if (m_rayHands[1] || m_rayAnimationData[1].animating) {
         opaquePass.setBindGroup(1, m_rightRayTransformBindGroup);
+        opaquePass.pushConstant(m_colorPushConstantRange, &m_rightRayColor);
         opaquePass.drawIndexed({ .indexCount = 6 });
     }
 

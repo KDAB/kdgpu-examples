@@ -228,7 +228,11 @@ private:
     Fence m_fence;
 
     // Hand related resources
-
+    const PushConstantRange m_colorPushConstantRange{
+        .offset = 0,
+        .size = sizeof(glm::vec3),
+        .shaderStages = ShaderStageFlags(ShaderStageFlagBits::FragmentBit)
+    };
     PipelineLayout m_handPipelineLayout;
     GraphicsPipeline m_handPipeline;
     BindGroupLayout m_solidTransformBindGroupLayout;
@@ -239,10 +243,12 @@ private:
     glm::mat4 m_leftHandTransform;
     Buffer m_leftHandTransformBuffer;
     BindGroup m_leftHandTransformBindGroup;
+    glm::vec3 m_leftHandColor{ 1.0f, 0.0f, 0.0f };
 
     glm::mat4 m_rightHandTransform;
     Buffer m_rightHandTransformBuffer;
     BindGroup m_rightHandTransformBindGroup;
+    glm::vec3 m_rightHandColor{ 0.0f, 0.0f, 1.0f };
 
     // ray related resources
 
@@ -252,10 +258,12 @@ private:
     glm::mat4 m_leftRayTransform;
     Buffer m_leftRayTransformBuffer;
     BindGroup m_leftRayTransformBindGroup;
+    glm::vec3 m_leftRayColor{ 1.0f, 0.2f, 0.2f };
 
     glm::mat4 m_rightRayTransform;
     Buffer m_rightRayTransformBuffer;
     BindGroup m_rightRayTransformBindGroup;
+    glm::vec3 m_rightRayColor{ 0.4f, 0.4f, 1.0f };
 
     std::array<bool, 2> m_rayHands{ false, false };
     struct AnimationData {
