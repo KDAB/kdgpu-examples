@@ -1,6 +1,7 @@
 # This file is part of KDGpu Examples.
 #
-# SPDX-FileCopyrightText: 2023 Klarälvdalens Datakonsult AB, a KDAB Group company <info@kdab.com>
+# SPDX-FileCopyrightText: 2023 Klarälvdalens Datakonsult AB, a KDAB Group
+# company <info@kdab.com>
 #
 # SPDX-License-Identifier: MIT
 #
@@ -8,17 +9,12 @@
 #
 include(FetchContent)
 
-# Note: FetchContent_MakeAvailable builds the project
-# if it contains a CMakeLists.txt, otherwise it does nothing.
-# ${package_SOURCE_DIR} ${package_BINARY_DIR} are made available by
-# MakeAvailable or Populate
+# Note: FetchContent_MakeAvailable builds the project if it contains a
+# CMakeLists.txt, otherwise it does nothing. ${package_SOURCE_DIR}
+# ${package_BINARY_DIR} are made available by MakeAvailable or Populate
 message(STATUS "Checking/updating dependencies. This may take a little while...
     Set the FETCHCONTENT_QUIET option to OFF to get verbose output.
 ")
-
-
-# spdlog Logging Library
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/dependencies/spdlog.cmake)
 
 # kdgpu
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/dependencies/kdgpu.cmake)
