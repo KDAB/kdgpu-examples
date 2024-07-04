@@ -1241,10 +1241,10 @@ void ModelScene::updateScene()
             const float t = float(msecsSinceStart) / float(m_rayAnimationData[0].durationMs);
             if (m_rayHands[0] == true) {
                 // Turning on animation
-                length *= std::powf(t, 3.0f);
+                length *= std::pow(t, 3.0f);
             } else {
                 // Turning off animation
-                length *= 1.0f - std::powf(t, 3.0f);
+                length *= 1.0f - std::pow(t, 3.0f);
             }
 
             if (msecsSinceStart > m_rayAnimationData[0].durationMs)
@@ -1272,10 +1272,10 @@ void ModelScene::updateScene()
             const float t = float(msecsSinceStart) / float(m_rayAnimationData[1].durationMs);
             if (m_rayHands[1] == true) {
                 // Turning on animation
-                length *= std::powf(t, 3.0f);
+                length *= std::pow(t, 3.0f);
             } else {
                 // Turning off animation
-                length *= 1.0f - std::powf(t, 3.0f);
+                length *= 1.0f - std::pow(t, 3.0f);
             }
 
             if (msecsSinceStart > m_rayAnimationData[1].durationMs)
