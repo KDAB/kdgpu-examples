@@ -124,6 +124,7 @@ public:
     KDBindings::Property<float> scale{ 1.0f };
     KDBindings::Property<KDXr::Pose> leftPalmPose{ KDXr::Pose{} };
     KDBindings::Property<KDXr::Pose> rightPalmPose{ KDXr::Pose{} };
+    KDBindings::Property<float> rotationY{ 0.0f };
 
     ModelScene(const KDGpuExample::XrProjectionLayerOptions &options);
 
@@ -137,6 +138,7 @@ protected:
     void initializeScene();
     void initializeHands();
     void initializeRay();
+    void initializeFloor();
     void cleanupScene();
     void initialize() override;
     void cleanup() override;
@@ -249,6 +251,14 @@ private:
     Buffer m_rightHandTransformBuffer;
     BindGroup m_rightHandTransformBindGroup;
     glm::vec3 m_rightHandColor{ 0.0f, 0.0f, 1.0f };
+
+    Buffer m_floorVertexBuffer;
+    Buffer m_floorIndexBuffer;
+
+    glm::mat4 m_floorTransform;
+    Buffer m_floorTransformBuffer;
+    BindGroup m_floorBindGroup;
+    glm::vec3 m_floorColor{ 0.1f, 0.7f, 0.2f };
 
     // ray related resources
 

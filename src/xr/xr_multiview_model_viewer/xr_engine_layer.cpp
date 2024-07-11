@@ -19,6 +19,9 @@
 
 void XrEngineLayer::onAttached()
 {
+    m_referenceSpaceOptions = {
+        .type = KDXr::ReferenceSpaceType::Stage
+    };
     XrExampleEngineLayer::onAttached();
     if (!m_isInitialized)
         return;
@@ -37,10 +40,10 @@ void XrEngineLayer::onAttached()
 
     // Create an action set and actions
     m_actionSet = m_xrInstance.createActionSet({ .name = "default", .localizedName = "Default" });
-    m_scaleAction = m_actionSet.createAction({ .name = "scale",
-                                               .localizedName = "Scale",
-                                               .type = KDXr::ActionType::Vector2Input,
-                                               .subactionPaths = { m_handPaths[1] } });
+    m_scaleRotateAction = m_actionSet.createAction({ .name = "scale",
+                                                     .localizedName = "Scale",
+                                                     .type = KDXr::ActionType::Vector2Input,
+                                                     .subactionPaths = { m_handPaths[1] } });
     m_translateAction = m_actionSet.createAction({ .name = "translate",
                                                    .localizedName = "Translate",
                                                    .type = KDXr::ActionType::Vector2Input,
@@ -65,6 +68,10 @@ void XrEngineLayer::onAttached()
                                               .localizedName = "Buzz",
                                               .type = KDXr::ActionType::VibrationOutput,
                                               .subactionPaths = m_handPaths });
+    m_toggleScaleRotateModeAction = m_actionSet.createAction({ .name = "toggle_scale_mode_action",
+                                                               .localizedName = "toggleScaleModeAction",
+                                                               .type = KDXr::ActionType::BooleanInput,
+                                                               .subactionPaths = { m_handPaths[1] } });
 
     // Create action spaces for the palm poses. Default is no offset from the palm pose. If you wish to
     // apply an offset, you can do so by setting the poseInActionSpace member of the ActionSpaceOptions.
@@ -76,7 +83,7 @@ void XrEngineLayer::onAttached()
     const auto bindingOptions = KDXr::SuggestActionBindingsOptions{
         .interactionProfile = "/interaction_profiles/oculus/touch_controller",
         .suggestedBindings = {
-                { .action = m_scaleAction, .binding = "/user/hand/right/input/thumbstick" },
+                { .action = m_scaleRotateAction, .binding = "/user/hand/right/input/thumbstick" },
                 { .action = m_translateAction, .binding = "/user/hand/left/input/thumbstick" },
                 { .action = m_buzzAction, .binding = "/user/hand/left/output/haptic" },
                 { .action = m_buzzAction, .binding = "/user/hand/right/output/haptic" },
@@ -84,7 +91,8 @@ void XrEngineLayer::onAttached()
                 { .action = m_palmPoseAction, .binding = "/user/hand/right/input/aim/pose" },
                 { .action = m_toggleRightRayAction, .binding = "/user/hand/right/input/squeeze/value" },
                 { .action = m_toggleLeftRayAction, .binding = "/user/hand/left/input/squeeze/value" },
-                { .action = m_toggleTranslateModeAction, .binding = "/user/hand/left/input/x/click" } }
+                { .action = m_toggleTranslateModeAction, .binding = "/user/hand/left/input/thumbstick/click" },
+                { .action = m_toggleScaleRotateModeAction, .binding = "/user/hand/right/input/thumbstick/click" } }
     };
     if (m_xrInstance.suggestActionBindings(bindingOptions) != KDXr::SuggestActionBindingsResult::Success) {
         SPDLOG_LOGGER_ERROR(m_logger, "Failed to suggest action bindings.");
@@ -101,11 +109,12 @@ void XrEngineLayer::onDetached()
 {
     m_translateAction = {};
     m_toggleTranslateModeAction = {};
+    m_toggleScaleRotateModeAction = {};
     m_palmPoseAction = {};
     m_buzzAction = {};
     m_toggleLeftRayAction = {};
     m_toggleRightRayAction = {};
-    m_scaleAction = {};
+    m_scaleRotateAction = {};
     m_actionSet = {};
 
     clearCompositorLayers();
@@ -144,29 +153,108 @@ void XrEngineLayer::pollActions(KDXr::Time predictedDisplayTime)
     }
 
     // Poll the actions and do something with the results
-    processScaleAction();
+    processScaleRotateAction();
     processToggleLeftRay();
     processToggleRightRay();
     processTranslateAction();
     processToggleTranslateAction();
+    processToggleScaleRotateAction();
     processPalmPoseAction(predictedDisplayTime);
     processHapticAction();
 }
 
-void XrEngineLayer::processScaleAction()
+void XrEngineLayer::processToggleScaleRotateAction()
+{
+    bool toggleScaleMode{ false };
+    // Query the toggle animation action
+    const auto toggleScaleModeResult = m_session.getBooleanState(
+            { .action = m_toggleScaleRotateModeAction, .subactionPath = m_handPaths[1] },
+            m_toggleScaleRotateModeActionState);
+    if (toggleScaleModeResult == KDXr::GetActionStateResult::Success) {
+        if (m_toggleScaleRotateModeActionState.currentState &&
+            m_toggleScaleRotateModeActionState.changedSinceLastSync &&
+            m_toggleScaleRotateModeActionState.active) {
+            toggleScaleMode = true;
+            // m_buzzHand = 0;
+        }
+    } else {
+        SPDLOG_LOGGER_ERROR(m_logger, "Failed to get toggle scale action state.");
+    }
+
+    // If the toggle animation action was pressed, toggle the animation and buzz the controller
+    if (toggleScaleMode) {
+        if (m_scaleMode == ScaleRotateMode::Scale) {
+            m_scaleMode = ScaleRotateMode::Rotation;
+        } else {
+            m_scaleMode = ScaleRotateMode::Scale;
+        }
+
+        // m_buzzAmplitudes[m_buzzHand] = 1.0f;
+        SPDLOG_LOGGER_INFO(m_logger, "Toggled Scale mode = {}", static_cast<uint8_t>(m_scaleMode));
+    }
+}
+
+void XrEngineLayer::processToggleTranslateAction()
+{
+    bool toggleTranslationMode{ false };
+    // Query the toggle animation action
+    const auto toggleTranslationModeResult = m_session.getBooleanState(
+            { .action = m_toggleTranslateModeAction, .subactionPath = m_handPaths[0] },
+            m_toggleTranslateModeActionState);
+    if (toggleTranslationModeResult == KDXr::GetActionStateResult::Success) {
+        if (m_toggleTranslateModeActionState.currentState &&
+            m_toggleTranslateModeActionState.changedSinceLastSync &&
+            m_toggleTranslateModeActionState.active) {
+            toggleTranslationMode = true;
+            m_buzzHand = 0;
+        }
+    } else {
+        SPDLOG_LOGGER_ERROR(m_logger, "Failed to get toggle translate mode action state.");
+    }
+
+    // If the toggle animation action was pressed, toggle the animation and buzz the controller
+    if (toggleTranslationMode) {
+        if (m_translationMode == TranslationMode::Horizontal) {
+            m_translationMode = TranslationMode::Vertical;
+        } else {
+            m_translationMode = TranslationMode::Horizontal;
+        }
+
+        m_buzzAmplitudes[m_buzzHand] = 1.0f;
+        SPDLOG_LOGGER_INFO(m_logger, "Toggled translate mode = {}", static_cast<uint8_t>(m_translationMode));
+    }
+}
+
+void XrEngineLayer::processScaleRotateAction()
 {
     // Query the translate action from the left thumbstick
     const float dt = engine()->deltaTimeSeconds();
     float delta{ 0.0f };
     const auto scaleResult = m_session.getVector2State(
-            { .action = m_scaleAction, .subactionPath = m_handPaths[1] }, m_scaleActionState);
+            { .action = m_scaleRotateAction, .subactionPath = m_handPaths[1] }, m_scaleRotateActionState);
     if (scaleResult == KDXr::GetActionStateResult::Success) {
-        if (m_scaleActionState.active) {
-            delta = dt * m_scaleActionState.currentState.y;
-            delta *= m_linearSpeed * m_projectionLayer->scale();
+        if (m_scaleRotateActionState.active) {
+            switch (m_scaleMode) {
+            case ScaleRotateMode::Scale: {
+                delta = dt * m_scaleRotateActionState.currentState.y;
+                delta *= m_linearSpeed * m_projectionLayer->scale();
+                const float newScale = std::clamp(m_projectionLayer->scale() + delta, 0.005f, 5.0f);
+                m_projectionLayer->scale = newScale;
+                break;
+            }
+            case ScaleRotateMode::Rotation: {
+                delta = dt * m_angularSpeed * m_scaleRotateActionState.currentState.x;
+                float newRotationY = m_projectionLayer->rotationY() + delta;
+                if (newRotationY < 0.0f)
+                    newRotationY += 360.0f;
+                else if (newRotationY > 360.0f)
+                    newRotationY -= 360.0f;
+                m_projectionLayer->rotationY = newRotationY;
+                break;
+            }
+            }
         }
-        const float newScale = std::clamp(m_projectionLayer->scale() + delta, 0.005f, 5.0f);
-        m_projectionLayer->scale = newScale;
+
     } else {
         SPDLOG_LOGGER_ERROR(m_logger, "Failed to get translate action state.");
     }
@@ -197,36 +285,7 @@ void XrEngineLayer::processTranslateAction()
         SPDLOG_LOGGER_ERROR(m_logger, "Failed to get translate action state.");
     }
 }
-void XrEngineLayer::processToggleTranslateAction()
-{
-    bool toggleTranslationMode{ false };
-    // Query the toggle animation action
-    const auto toggleTranslationModeResult = m_session.getBooleanState(
-            { .action = m_toggleTranslateModeAction, .subactionPath = m_handPaths[0] },
-            m_toggleTranaslateModeActionState);
-    if (toggleTranslationModeResult == KDXr::GetActionStateResult::Success) {
-        if (m_toggleTranaslateModeActionState.currentState &&
-            m_toggleTranaslateModeActionState.changedSinceLastSync &&
-            m_toggleTranaslateModeActionState.active) {
-            toggleTranslationMode = true;
-            m_buzzHand = 0;
-        }
-    } else {
-        SPDLOG_LOGGER_ERROR(m_logger, "Failed to get toggle translate mode action state.");
-    }
 
-    // If the toggle animation action was pressed, toggle the animation and buzz the controller
-    if (toggleTranslationMode) {
-        if (m_translationMode == TranslationMode::Horizontal) {
-            m_translationMode = TranslationMode::Vertical;
-        } else {
-            m_translationMode = TranslationMode::Horizontal;
-        }
-
-        m_buzzAmplitudes[m_buzzHand] = 1.0f;
-        SPDLOG_LOGGER_INFO(m_logger, "Toggled translate mode = {}", static_cast<uint8_t>(m_translationMode));
-    }
-}
 void XrEngineLayer::processToggleRightRay()
 {
     // Query the toggle ray action from the right squeeze value
@@ -234,7 +293,7 @@ void XrEngineLayer::processToggleRightRay()
     static bool armed = true;
     const auto squeezeResult = m_session.getFloatState({ .action = m_toggleRightRayAction, .subactionPath = m_handPaths[1] }, m_toggleRightRayActionState);
     if (squeezeResult == KDXr::GetActionStateResult::Success) {
-        if (m_scaleActionState.active) {
+        if (m_scaleRotateActionState.active) {
             squeeze = m_toggleRightRayActionState.currentState;
             if (armed && squeeze > 0.9f) {
                 m_projectionLayer->toggleRay(ModelScene::Hand::Right);
@@ -256,7 +315,7 @@ void XrEngineLayer::processToggleLeftRay()
     static bool armed = true;
     const auto squeezeResult = m_session.getFloatState({ .action = m_toggleLeftRayAction, .subactionPath = m_handPaths[0] }, m_toggleLeftRayActionState);
     if (squeezeResult == KDXr::GetActionStateResult::Success) {
-        if (m_scaleActionState.active) {
+        if (m_scaleRotateActionState.active) {
             squeeze = m_toggleLeftRayActionState.currentState;
             if (armed && squeeze > 0.9f) {
                 m_projectionLayer->toggleRay(ModelScene::Hand::Left);

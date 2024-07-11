@@ -45,9 +45,10 @@ protected:
 
 private:
     void processToggleAnimationAction();
-    void processScaleAction();
+    void processScaleRotateAction();
     void processTranslateAction();
     void processToggleTranslateAction();
+    void processToggleScaleRotateAction();
     void processToggleRightRay();
     void processToggleLeftRay();
     void processPalmPoseAction(KDXr::Time predictedDisplayTime);
@@ -63,11 +64,18 @@ private:
     };
     TranslationMode m_translationMode{ TranslationMode::Horizontal };
 
+    enum class ScaleRotateMode : std::uint8_t {
+        Scale = 0,
+        Rotation
+    };
+    ScaleRotateMode m_scaleMode{ ScaleRotateMode::Scale };
+
     // Input/output actions
     KDXr::ActionSet m_actionSet;
-    KDXr::Action m_scaleAction;
+    KDXr::Action m_scaleRotateAction;
     KDXr::Action m_translateAction;
     KDXr::Action m_toggleTranslateModeAction;
+    KDXr::Action m_toggleScaleRotateModeAction;
     KDXr::Action m_buzzAction;
     KDXr::Action m_palmPoseAction;
     KDXr::Action m_toggleRightRayAction;
@@ -76,10 +84,12 @@ private:
     const std::vector<std::string> m_handPaths{ "/user/hand/left", "/user/hand/right" };
 
     float m_scaleSpeed{ 0.1f };
-    KDXr::ActionStateVector2 m_scaleActionState;
+    KDXr::ActionStateVector2 m_scaleRotateActionState;
     float m_linearSpeed{ 1.0f };
+    float m_angularSpeed{ 30.0f };
     KDXr::ActionStateVector2 m_translateActionState;
-    KDXr::ActionStateBoolean m_toggleTranaslateModeActionState;
+    KDXr::ActionStateBoolean m_toggleTranslateModeActionState;
+    KDXr::ActionStateBoolean m_toggleScaleRotateModeActionState;
     int32_t m_buzzHand{ -1 };
     std::array<float, 2> m_buzzAmplitudes{ 0.0f, 0.0f };
     KDXr::ActionStateFloat m_toggleRightRayActionState;
