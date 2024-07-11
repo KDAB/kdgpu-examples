@@ -300,6 +300,87 @@ void ModelScene::initializeScene()
 
     initializeHands();
     initializeRay();
+    initializeFloor();
+}
+
+void ModelScene::initializeFloor()
+{
+
+    struct Vertex {
+        glm::vec3 position;
+    };
+
+    {
+        const std::array<Vertex, 4> vertexData = {
+            Vertex{ .position = { -10.0f, 0.0f, -10.0f } },
+            Vertex{ .position = { 10.0f, 0.0f, -10.0f } },
+            Vertex{ .position = { -10.0f, 0.0f, 10.0f } },
+            Vertex{ .position = { 10.0f, 0.0f, 10.0f } }
+        };
+        const DeviceSize dataByteSize = vertexData.size() * sizeof(Vertex);
+        const BufferOptions bufferOptions = {
+            .label = "FLoor Buffer",
+            .size = dataByteSize,
+            .usage = BufferUsageFlagBits::VertexBufferBit | BufferUsageFlagBits::TransferDstBit,
+            .memoryUsage = MemoryUsage::GpuOnly
+        };
+        m_floorVertexBuffer = m_device->createBuffer(bufferOptions);
+        const BufferUploadOptions uploadOptions = {
+            .destinationBuffer = m_floorVertexBuffer,
+            .dstStages = PipelineStageFlagBit::VertexAttributeInputBit,
+            .dstMask = AccessFlagBit::VertexAttributeReadBit,
+            .data = vertexData.data(),
+            .byteSize = dataByteSize
+        };
+        uploadBufferData(uploadOptions);
+    }
+
+    {
+        std::array<uint32_t, 6> indexData = { 0, 1, 2, 1, 3, 2 };
+        const DeviceSize dataByteSize = indexData.size() * sizeof(uint32_t);
+        const BufferOptions bufferOptions = {
+            .label = "Floor Index Buffer",
+            .size = dataByteSize,
+            .usage = BufferUsageFlagBits::IndexBufferBit | BufferUsageFlagBits::TransferDstBit,
+            .memoryUsage = MemoryUsage::GpuOnly
+        };
+        m_floorIndexBuffer = m_device->createBuffer(bufferOptions);
+        const BufferUploadOptions uploadOptions = {
+            .destinationBuffer = m_floorIndexBuffer,
+            .dstStages = PipelineStageFlagBit::IndexInputBit,
+            .dstMask = AccessFlagBit::IndexReadBit,
+            .data = indexData.data(),
+            .byteSize = dataByteSize
+        };
+        uploadBufferData(uploadOptions);
+    }
+
+    {
+
+        const BufferOptions bufferOptions = {
+            .label = "Floor Transformation Buffer",
+            .size = sizeof(glm::mat4),
+            .usage = BufferUsageFlagBits::UniformBufferBit,
+            .memoryUsage = MemoryUsage::CpuToGpu // So we can map it to CPU address space
+        };
+
+        m_floorTransformBuffer = m_device->createBuffer(bufferOptions);
+
+        m_floorTransform = glm::mat4(1.0f);
+        auto bufferData = m_floorTransformBuffer.map();
+        std::memcpy(bufferData, &m_floorTransform, sizeof(glm::mat4));
+        m_floorTransformBuffer.unmap();
+    }
+
+    const BindGroupOptions floorBindGroupLayoutOptions = {
+        .label = "Floor Bind Group",
+        .layout = m_solidTransformBindGroupLayout,
+        .resources = { { .binding = 0,
+                         .resource = UniformBufferBinding{ .buffer = m_floorTransformBuffer } } }
+    };
+    // cl
+
+    m_floorBindGroup = m_device->createBindGroup(floorBindGroupLayoutOptions);
 }
 
 void ModelScene::initializeHands()
@@ -331,6 +412,7 @@ void ModelScene::initializeHands()
             .data = vertexData.data(),
             .byteSize = dataByteSize
         };
+
         uploadBufferData(uploadOptions);
     }
 
@@ -1149,6 +1231,7 @@ void ModelScene::cleanupScene()
     m_leftHandTransformBindGroup = {};
     m_leftHandTransformBuffer = {};
     m_leftHandBuffer = {};
+    m_floorIndexBuffer = {};
     m_handPipelineLayout = {};
     m_handPipeline = {};
 
@@ -1292,6 +1375,7 @@ void ModelScene::updateScene()
     m_modelTransform = glm::mat4(1.0f);
     m_modelTransform = glm::translate(m_modelTransform, translation());
     m_modelTransform = glm::scale(m_modelTransform, glm::vec3(scale()));
+    m_modelTransform = glm::rotate(m_modelTransform, glm::radians(rotationY()), glm::vec3(0.0f, 1.0f, 0.0f));
 
     static TimePoint s_lastFpsTimestamp;
     const auto frameEndTime = std::chrono::high_resolution_clock::now();
@@ -1417,6 +1501,13 @@ void ModelScene::renderView()
     opaquePass.setBindGroup(1, m_rightHandTransformBindGroup);
     opaquePass.pushConstant(m_colorPushConstantRange, &m_rightHandColor);
     opaquePass.drawIndexed(drawCmd);
+
+    // Draw floor
+    opaquePass.setVertexBuffer(0, m_floorVertexBuffer);
+    opaquePass.setIndexBuffer(m_floorIndexBuffer);
+    opaquePass.setBindGroup(1, m_floorBindGroup);
+    opaquePass.pushConstant(m_colorPushConstantRange, &m_floorColor);
+    opaquePass.drawIndexed({ .indexCount = 6 });
 
     // Draw the ray
     opaquePass.setVertexBuffer(0, m_rayVertexBuffer);
