@@ -252,13 +252,25 @@ private:
     BindGroup m_rightHandTransformBindGroup;
     glm::vec3 m_rightHandColor{ 0.0f, 0.0f, 1.0f };
 
+    // Floor related resources
     Buffer m_floorVertexBuffer;
     Buffer m_floorIndexBuffer;
 
+    PipelineLayout m_floorPipelineLayout;
+    GraphicsPipeline m_floorPipeline;
+    BindGroupLayout m_floorBindGroupLayout;
     glm::mat4 m_floorTransform;
     Buffer m_floorTransformBuffer;
     BindGroup m_floorBindGroup;
     glm::vec3 m_floorColor{ 0.1f, 0.7f, 0.2f };
+    TextureAndView m_floorTexture;
+    Sampler m_floorSampler;
+    const PushConstantRange m_floorPushConstantRange{
+        .offset = 0,
+        .size = sizeof(float),
+        .shaderStages = ShaderStageFlags(ShaderStageFlagBits::VertexBit)
+    };
+    float m_floorTextureScale{ 15.0f };
 
     // ray related resources
 

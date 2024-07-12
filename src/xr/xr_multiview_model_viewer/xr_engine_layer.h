@@ -86,7 +86,7 @@ private:
     float m_scaleSpeed{ 0.1f };
     KDXr::ActionStateVector2 m_scaleRotateActionState;
     float m_linearSpeed{ 1.0f };
-    float m_angularSpeed{ 30.0f };
+    float m_angularSpeed{ 60.0f };
     KDXr::ActionStateVector2 m_translateActionState;
     KDXr::ActionStateBoolean m_toggleTranslateModeActionState;
     KDXr::ActionStateBoolean m_toggleScaleRotateModeActionState;
