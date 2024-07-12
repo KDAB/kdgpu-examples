@@ -15,19 +15,26 @@ namespace ExampleUtility {
 inline std::string assetPath()
 {
 #if defined(GLTF_RENDERER_ASSET_PATH)
-  return GLTF_RENDERER_ASSET_PATH;
+    return GLTF_RENDERER_ASSET_PATH;
 #else
-  return "";
+    return "";
 #endif
 }
 
 inline std::string gltfModelPath()
 {
 #if defined(GLTF_RENDERER_MODEL_PATH)
-  return GLTF_RENDERER_MODEL_PATH;
+    return GLTF_RENDERER_MODEL_PATH;
 #else
-  return "";
+    return "";
 #endif
 }
 
+inline uint32_t calculateMipMapLevels(uint32_t width, uint32_t height)
+{
+    uint32_t largerDimension = std::max(width, height);
+    uint32_t levelCount = static_cast<uint32_t>(std::floor(std::log2(largerDimension))) + 1;
+    return levelCount;
 }
+
+} // namespace ExampleUtility

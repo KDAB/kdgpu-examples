@@ -29,11 +29,47 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 #include <algorithm>
 #include <assert.h>
 #include <cmath>
 #include <fstream>
 #include <string>
+
+struct ImageData {
+    uint32_t width{ 0 };
+    uint32_t height{ 0 };
+    uint8_t *pixelData{ nullptr };
+    DeviceSize byteSize{ 0 };
+    Format format{ Format::R8G8B8A8_SRGB };
+};
+
+ImageData loadImage(const std::string &path)
+{
+    int texChannels;
+    int _width = 0, _height = 0;
+    std::string texturePath = path;
+#ifdef PLATFORM_WIN32
+    // STB fails to load if path is /C:/... instead of C:/...
+    if (texturePath.rfind("/", 0) == 0)
+        texturePath = texturePath.substr(1);
+#endif
+    auto _data = stbi_load(texturePath.c_str(), &_width, &_height, &texChannels, STBI_rgb_alpha);
+    if (_data == nullptr) {
+        SPDLOG_WARN("Failed to load texture {} {}", path, stbi_failure_reason());
+        return {};
+    }
+    SPDLOG_DEBUG("Texture dimensions: {} x {}", _width, _height);
+
+    return ImageData{
+        .width = static_cast<uint32_t>(_width),
+        .height = static_cast<uint32_t>(_height),
+        .pixelData = static_cast<uint8_t *>(_data),
+        .byteSize = 4 * static_cast<DeviceSize>(_width) * static_cast<DeviceSize>(_height)
+    };
+}
 
 ModelScene::ModelScene(const KDGpuExample::XrProjectionLayerOptions &options)
     : KDGpuExample::XrProjectionLayer(options)
@@ -61,6 +97,8 @@ void ModelScene::toggleRay(Hand hand)
 
 void ModelScene::initializeScene()
 {
+    m_farPlane = 2000.0f;
+
     // Create some default textures and samplers
     m_opaqueWhite = createSolidColorTexture(1.0f, 1.0f, 1.0f, 1.0f);
     m_transparentBlack = createSolidColorTexture(0.0f, 0.0f, 0.0f, 0.0f);
@@ -127,6 +165,7 @@ void ModelScene::initializeScene()
     // const std::string modelPath("FlightHelmet/FlightHelmet.gltf");
     // const std::string modelPath("Sponza/glTF/Sponza.gltf");
     const std::string modelPath("Buggy/Buggy.gltf");
+    // const std::string modelPath("gm_bigcity/scene.gltf");
     if (!TinyGltfHelper::loadModel(model, ExampleUtility::gltfModelPath() + modelPath))
         return;
 
@@ -305,21 +344,25 @@ void ModelScene::initializeScene()
 
 void ModelScene::initializeFloor()
 {
-
     struct Vertex {
         glm::vec3 position;
+        glm::vec2 textureCoordinates;
     };
 
     {
         const std::array<Vertex, 4> vertexData = {
-            Vertex{ .position = { -10.0f, 0.0f, -10.0f } },
-            Vertex{ .position = { 10.0f, 0.0f, -10.0f } },
-            Vertex{ .position = { -10.0f, 0.0f, 10.0f } },
-            Vertex{ .position = { 10.0f, 0.0f, 10.0f } }
+            Vertex{ .position = { -10.0f, 0.0f, -10.0f }, // Bottom Left
+                    .textureCoordinates = { 0.0f, 0.0f } },
+            Vertex{ .position = { 10.0f, 0.0f, -10.0f }, // Bottom Right
+                    .textureCoordinates = { 1.0f, 0.0f } },
+            Vertex{ .position = { -10.0f, 0.0f, 10.0f }, // Top Left
+                    .textureCoordinates = { 0.0f, 1.0f } },
+            Vertex{ .position = { 10.0f, 0.0f, 10.0f }, // Top Right
+                    .textureCoordinates = { 1.0f, 1.0f } }
         };
         const DeviceSize dataByteSize = vertexData.size() * sizeof(Vertex);
         const BufferOptions bufferOptions = {
-            .label = "FLoor Buffer",
+            .label = "Floor Buffer",
             .size = dataByteSize,
             .usage = BufferUsageFlagBits::VertexBufferBit | BufferUsageFlagBits::TransferDstBit,
             .memoryUsage = MemoryUsage::GpuOnly
@@ -356,7 +399,6 @@ void ModelScene::initializeFloor()
     }
 
     {
-
         const BufferOptions bufferOptions = {
             .label = "Floor Transformation Buffer",
             .size = sizeof(glm::mat4),
@@ -372,15 +414,139 @@ void ModelScene::initializeFloor()
         m_floorTransformBuffer.unmap();
     }
 
-    const BindGroupOptions floorBindGroupLayoutOptions = {
-        .label = "Floor Bind Group",
-        .layout = m_solidTransformBindGroupLayout,
-        .resources = { { .binding = 0,
-                         .resource = UniformBufferBinding{ .buffer = m_floorTransformBuffer } } }
-    };
-    // cl
+    {
+        // Load the image data and size
+        ImageData image = loadImage(ExampleUtility::assetPath() + "/textures/Grass001/Grass001_4K_Color.jpg");
 
-    m_floorBindGroup = m_device->createBindGroup(floorBindGroupLayoutOptions);
+        const auto mipLevels = ExampleUtility::calculateMipMapLevels(image.width, image.height);
+        const TextureOptions textureOptions = {
+            .type = TextureType::TextureType2D,
+            .format = image.format,
+            .extent = { .width = image.width, .height = image.height, .depth = 1 },
+            .mipLevels = mipLevels,
+            .usage = TextureUsageFlagBits::SampledBit | TextureUsageFlagBits::TransferDstBit,
+            .memoryUsage = MemoryUsage::GpuOnly,
+            .initialLayout = TextureLayout::Undefined
+        };
+        m_floorTexture.texture = m_device->createTexture(textureOptions);
+
+        // Upload the texture data and transition to ShaderReadOnlyOptimal
+        // clang-format off
+        const std::vector<BufferTextureCopyRegion> regions = {{
+            .textureSubResource = { .aspectMask = TextureAspectFlagBits::ColorBit },
+            .textureExtent = { .width = image.width, .height = image.height, .depth = 1 }
+        }};
+        // clang-format on
+        const TextureUploadOptions uploadOptions = {
+            .destinationTexture = m_floorTexture.texture,
+            .dstStages = PipelineStageFlagBit::AllGraphicsBit,
+            .dstMask = AccessFlagBit::MemoryReadBit,
+            .data = image.pixelData,
+            .byteSize = image.byteSize,
+            .oldLayout = TextureLayout::Undefined,
+            .newLayout = TextureLayout::ShaderReadOnlyOptimal,
+            .regions = regions
+        };
+        uploadTextureData(uploadOptions);
+
+        bool result = m_floorTexture.texture.generateMipMaps(*m_device, *m_queue, textureOptions, TextureLayout::Undefined, TextureLayout::ShaderReadOnlyOptimal);
+        if (!result)
+            SPDLOG_ERROR("Failed to generate mip maps for the floor texture");
+
+        // Create a view and sampler
+        m_floorTexture.textureView = m_floorTexture.texture.createView();
+
+        const SamplerOptions samplerOptions = {
+            .magFilter = FilterMode::Linear,
+            .minFilter = FilterMode::Linear,
+            .mipmapFilter = MipmapFilterMode::Linear,
+            .anisotropyEnabled = true,
+            .maxAnisotropy = 16.0f
+        };
+        m_floorSampler = m_device->createSampler(samplerOptions);
+    }
+
+    const BindGroupLayoutOptions floorBindGroupLayoutOptions = {
+        .label = "Floor Bind Group Layout",
+        .bindings = {
+                {
+                        .binding = 0,
+                        .resourceType = ResourceBindingType::UniformBuffer,
+                        .shaderStages = ShaderStageFlags(ShaderStageFlagBits::VertexBit),
+                },
+                {
+                        .binding = 1,
+                        .resourceType = ResourceBindingType::CombinedImageSampler,
+                        .shaderStages = ShaderStageFlags(ShaderStageFlagBits::FragmentBit),
+                } }
+    };
+    // clang-format on
+    m_floorBindGroupLayout = m_device->createBindGroupLayout(floorBindGroupLayoutOptions);
+
+    // clang-format off
+    const BindGroupOptions floorBindGroupOptions = {
+        .label = "Floor Transform and Texture Bind Group",
+        .layout = m_floorBindGroupLayout,
+        .resources = {
+            {
+                .binding = 0,
+                .resource = UniformBufferBinding{ .buffer = m_floorTransformBuffer }
+            },
+            {
+                .binding = 1,
+                .resource = TextureViewSamplerBinding{ .textureView = m_floorTexture.textureView, .sampler = m_floorSampler }
+            }
+        }
+    };
+    // clang-format on
+    m_floorBindGroup = m_device->createBindGroup(floorBindGroupOptions);
+
+    // Create a pipeline to draw the floor texture
+    const auto vertexShaderPath = ExampleUtility::assetPath() + "/shaders/xr_multiview_model_viewer/texture.vert.spv";
+    auto vertexShader = m_device->createShaderModule(KDGpuExample::readShaderFile(vertexShaderPath));
+
+    const auto fragmentShaderPath = ExampleUtility::assetPath() + "/shaders/xr_multiview_model_viewer/texture.frag.spv";
+    auto fragmentShader = m_device->createShaderModule(KDGpuExample::readShaderFile(fragmentShaderPath));
+
+    const PipelineLayoutOptions pipelineLayoutOptions = {
+        .label = "Floor Pipeline Layout",
+        .bindGroupLayouts = { m_cameraBindGroupLayout, m_floorBindGroupLayout },
+        .pushConstantRanges = { m_floorPushConstantRange }
+    };
+    m_floorPipelineLayout = m_device->createPipelineLayout(pipelineLayoutOptions);
+
+    // clang-format off
+    const GraphicsPipelineOptions pipelineOptions = {
+        .label = "Floor Pipeline",
+        .shaderStages = {
+            { .shaderModule = vertexShader, .stage = ShaderStageFlagBits::VertexBit },
+            { .shaderModule = fragmentShader, .stage = ShaderStageFlagBits::FragmentBit }
+        },
+        .layout = m_floorPipelineLayout,
+        .vertex = {
+            .buffers = {
+                { .binding = 0, .stride = sizeof(Vertex) }
+            },
+            .attributes = {
+                { .location = 0, .binding = 0, .format = Format::R32G32B32_SFLOAT }, // Position
+                { .location = 1, .binding = 0, .format = Format::R32G32_SFLOAT, .offset = sizeof(glm::vec3) }
+            }
+        },
+        .renderTargets = {
+            { .format = m_colorSwapchainFormat }
+        },
+        .depthStencil = {
+            .format = m_depthSwapchainFormat,
+            .depthWritesEnabled = true,
+            .depthCompareOperation = CompareOperation::Less
+        },
+        .primitive = {
+            .cullMode = CullModeFlagBits::None
+        },
+        .viewCount = viewCount()
+    };
+    // clang-format on
+    m_floorPipeline = m_device->createGraphicsPipeline(pipelineOptions);
 }
 
 void ModelScene::initializeHands()
@@ -701,7 +867,6 @@ Buffer ModelScene::createBufferForBufferView(const tinygltf::Model &model,
 
 TextureAndView ModelScene::createTextureForImage(const tinygltf::Model &model, uint32_t textureIndex)
 {
-    // TODO: Mip map generation
     TextureAndView textureAndView;
     const tinygltf::Image &gltfImage = model.images.at(textureIndex);
 
@@ -711,12 +876,13 @@ TextureAndView ModelScene::createTextureForImage(const tinygltf::Model &model, u
         .height = static_cast<uint32_t>(gltfImage.height),
         .depth = 1
     };
+    const auto mipLevels = ExampleUtility::calculateMipMapLevels(extent.width, extent.height);
     TextureOptions textureOptions = {
         .type = TextureType::TextureType2D,
         .format = Format::R8G8B8A8_UNORM,
         .extent = extent,
-        .mipLevels = 1,
-        .usage = TextureUsageFlagBits::SampledBit | TextureUsageFlagBits::TransferDstBit,
+        .mipLevels = mipLevels,
+        .usage = TextureUsageFlagBits::SampledBit | TextureUsageFlagBits::TransferDstBit | TextureUsageFlagBits::TransferSrcBit,
         .memoryUsage = MemoryUsage::GpuOnly
     };
     // clang-format on
@@ -739,6 +905,10 @@ TextureAndView ModelScene::createTextureForImage(const tinygltf::Model &model, u
     };
     // clang-format on
     uploadTextureData(uploadOptions);
+
+    bool result = textureAndView.texture.generateMipMaps(*m_device, *m_queue, textureOptions, TextureLayout::Undefined, TextureLayout::ShaderReadOnlyOptimal);
+    if (!result)
+        SPDLOG_ERROR("Failed to generate mip maps for texture {}", gltfImage.name);
 
     // Create a view
     textureAndView.textureView = textureAndView.texture.createView();
@@ -1502,13 +1672,6 @@ void ModelScene::renderView()
     opaquePass.pushConstant(m_colorPushConstantRange, &m_rightHandColor);
     opaquePass.drawIndexed(drawCmd);
 
-    // Draw floor
-    opaquePass.setVertexBuffer(0, m_floorVertexBuffer);
-    opaquePass.setIndexBuffer(m_floorIndexBuffer);
-    opaquePass.setBindGroup(1, m_floorBindGroup);
-    opaquePass.pushConstant(m_colorPushConstantRange, &m_floorColor);
-    opaquePass.drawIndexed({ .indexCount = 6 });
-
     // Draw the ray
     opaquePass.setVertexBuffer(0, m_rayVertexBuffer);
     opaquePass.setIndexBuffer(m_rayIndexBuffer);
@@ -1522,6 +1685,14 @@ void ModelScene::renderView()
         opaquePass.pushConstant(m_colorPushConstantRange, &m_rightRayColor);
         opaquePass.drawIndexed({ .indexCount = 6 });
     }
+
+    // Draw floor
+    opaquePass.setPipeline(m_floorPipeline);
+    opaquePass.setVertexBuffer(0, m_floorVertexBuffer);
+    opaquePass.setIndexBuffer(m_floorIndexBuffer);
+    opaquePass.setBindGroup(1, m_floorBindGroup);
+    opaquePass.pushConstant(m_floorPushConstantRange, &m_floorTextureScale);
+    opaquePass.drawIndexed({ .indexCount = 6 });
 
     opaquePass.end();
     m_commandBuffer = commandRecorder.finish();
