@@ -28,6 +28,11 @@ Files: assets/shaders/*.frag assets/shaders/*.vert assets/shaders/*.comp assets/
 Copyright: Klarälvdalens Datakonsult AB, a KDAB Group company <info@kdab.com>
 License: MIT
 
+# assets (textures)
+Files: assets/textures/Grass001/*
+Copyright: https://cc0-textures.com/t/cc0t-grass-001
+License: CC-0
+
 # CACAO shaders
 Files: assets/shaders/*.h
 Copyright: 2020-2021 Advanced Micro Devices, Inc
