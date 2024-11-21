@@ -12,7 +12,7 @@
 
 namespace ExampleUtility {
 
-std::string assetPath()
+inline std::string assetPath()
 {
 #if defined(GLTF_RENDERER_ASSET_PATH)
   return GLTF_RENDERER_ASSET_PATH;
@@ -21,7 +21,7 @@ std::string assetPath()
 #endif
 }
 
-std::string gltfModelPath()
+inline std::string gltfModelPath()
 {
 #if defined(GLTF_RENDERER_MODEL_PATH)
   return GLTF_RENDERER_MODEL_PATH;
