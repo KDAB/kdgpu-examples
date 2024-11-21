@@ -80,3 +80,7 @@ imgui.ini
 build/*
 serenity_metatype.*
 output.json
+
+# Jetbrains / CLion
+cmake-build-*
+/.idea
