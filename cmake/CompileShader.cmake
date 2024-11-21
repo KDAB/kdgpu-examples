@@ -52,7 +52,7 @@ function(CompileShaderVariants target variants_filename)
     )
 
     if(NOT SHADER_VARIANT_RESULT EQUAL "0")
-        message(NOTICE ${SHADER_VARIANT_RESULT})
+        message(NOTICE "generate_shader_variants.rb command returned: ${SHADER_VARIANT_RESULT}")
         message(FATAL_ERROR "Failed to generate shader variant build targets for " ${variants_filename})
     endif()
 
