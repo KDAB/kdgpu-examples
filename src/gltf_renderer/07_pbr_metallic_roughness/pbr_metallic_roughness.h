@@ -136,6 +136,7 @@ private:
                                      uint32_t bufferViewIndex);
 
     TextureAndView createTextureForImage(const tinygltf::Model &model, uint32_t textureIndex);
+    TextureAndView createTextureForImageData(uint32_t width, uint32_t height, const void *data, size_t byteCount, Format format);
     TextureAndView createTextureFromKtxFile(const std::string &filename);
     Sampler createSampler(const tinygltf::Model &model, uint32_t samplerIndex);
     TextureViewAndSampler createViewSamplerForTexture(const tinygltf::Model &model, uint32_t viewSamplerIndex);

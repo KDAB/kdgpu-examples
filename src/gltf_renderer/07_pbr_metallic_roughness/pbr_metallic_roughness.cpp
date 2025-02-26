@@ -373,22 +373,19 @@ Buffer PbrMetallicRoughness::createBufferForBufferView(const tinygltf::Model &mo
 
     return buffer;
 }
-
-TextureAndView PbrMetallicRoughness::createTextureForImage(const tinygltf::Model &model, uint32_t textureIndex)
+TextureAndView PbrMetallicRoughness::createTextureForImageData(uint32_t width, uint32_t height, const void *data, size_t byteCount, Format format)
 {
-    // TODO: Mip map generation
     TextureAndView textureAndView;
-    const tinygltf::Image &gltfImage = model.images.at(textureIndex);
 
     // clang-format off
     const Extent3D extent = {
-        .width = static_cast<uint32_t>(gltfImage.width),
-        .height = static_cast<uint32_t>(gltfImage.height),
+        .width = width,
+        .height = height,
         .depth = 1
     };
     TextureOptions textureOptions = {
         .type = TextureType::TextureType2D,
-        .format = Format::R8G8B8A8_UNORM,
+        .format = format,
         .extent = extent,
         .mipLevels = 1,
         .usage = TextureUsageFlagBits::SampledBit | TextureUsageFlagBits::TransferDstBit,
@@ -403,8 +400,8 @@ TextureAndView PbrMetallicRoughness::createTextureForImage(const tinygltf::Model
         .destinationTexture = textureAndView.texture,
         .dstStages = PipelineStageFlagBit::AllGraphicsBit,
         .dstMask = AccessFlagBit::MemoryReadBit,
-        .data = gltfImage.image.data(),
-        .byteSize = gltfImage.image.size(),
+        .data = data,
+        .byteSize = byteCount,
         .oldLayout = TextureLayout::Undefined,
         .newLayout = TextureLayout::ShaderReadOnlyOptimal,
         .regions = {{
@@ -418,6 +415,19 @@ TextureAndView PbrMetallicRoughness::createTextureForImage(const tinygltf::Model
     // Create a view
     textureAndView.textureView = textureAndView.texture.createView();
     return textureAndView;
+}
+
+TextureAndView PbrMetallicRoughness::createTextureForImage(const tinygltf::Model &model, uint32_t textureIndex)
+{
+    // TODO: Mip map generation
+    const tinygltf::Image &gltfImage = model.images.at(textureIndex);
+    return createTextureForImageData(
+        static_cast<uint32_t>(gltfImage.width),
+        static_cast<uint32_t>(gltfImage.height),
+        gltfImage.image.data(),
+        gltfImage.image.size(),
+        Format::R8G8B8A8_UNORM
+    );
 }
 
 TextureAndView PbrMetallicRoughness::createTextureFromKtxFile(const std::string &filename)
