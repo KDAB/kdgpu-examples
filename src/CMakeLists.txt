@@ -13,3 +13,7 @@ add_subdirectory(utility)
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_subdirectory(dma_buf_interop)
 endif()
+
+if(KDGPU_BUILD_SLINT_EXAMPLE)
+    add_subdirectory(slint)
+endif()

@@ -57,6 +57,14 @@ include(FeatureSummary)
 include(CMakeDependentOption)
 include(GNUInstallDirs)
 
+find_program(RUSTC_PATH rustc)
+if(RUSTC_PATH)
+    option(KDGPU_BUILD_SLINT_EXAMPLE "Build the Slint example" ON)
+else()
+    message("Rust compiler was not found. Slint example will not be built.")
+    set(KDGPU_BUILD_SLINT_EXAMPLE OFF)
+endif()
+
 # Note: Set before including dependencies.cmake, so 3rd party libs end up in the
 # correct dir
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
