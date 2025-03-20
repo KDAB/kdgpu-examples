@@ -6,13 +6,13 @@
 #
 # Contact KDAB at <info@kdab.com> for commercial licensing options.
 #
-find_package(ktx 4.0.0 QUIET)
+find_package(ktx 4.3.2 QUIET)
 
 if(NOT TARGET ktx)
     FetchContent_Declare(
         ktx
         GIT_REPOSITORY https://github.com/KhronosGroup/KTX-Software.git
-        GIT_TAG v4.1.0-rc3
+        GIT_TAG v4.3.2
     )
 
     option(KTX_FEATURE_KTX2 "Enable KTX 2 support" ON)
