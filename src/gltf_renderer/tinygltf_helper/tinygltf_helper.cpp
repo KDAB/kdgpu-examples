@@ -20,6 +20,12 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#ifdef ANDROID
+#include <KDUtils/dir.h>
+#include <KDGui/platform/android/android_platform_integration.h>
+#include <android_native_app_glue.h>
+#endif
+
 using namespace KDGpu;
 
 namespace TinyGltfHelper {
@@ -309,7 +315,16 @@ bool loadModel(tinygltf::Model &model, const std::string &filename)
     std::string err;
     std::string warn;
 
+#ifdef ANDROID
+    auto dir = KDUtils::Dir{ KDGui::AndroidPlatformIntegration::s_androidApp->activity->externalDataPath };
+    auto androidFilename = dir.absoluteFilePath(filename);
+    bool result = loader.LoadASCIIFromFile(&model, &err, &warn, androidFilename.data());
+#else
     bool result = loader.LoadASCIIFromFile(&model, &err, &warn, filename.data());
+#endif
+
+
+
     if (!warn.empty())
         spdlog::warn("{}", warn);
 
