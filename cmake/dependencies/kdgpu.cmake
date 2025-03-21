@@ -16,7 +16,7 @@ endif()
 if(NOT KDGpu_FOUND)
     FetchContent_Declare(
         KDGpu
-        GIT_REPOSITORY ssh://codereview.kdab.com:29418/kdab/toy-renderer
+        GIT_REPOSITORY ssh://codereview.kdab.com:29418/kdab/kdgpu
         GIT_TAG main
         USES_TERMINAL_DOWNLOAD YES USES_TERMINAL_UPDATE YES
     )
