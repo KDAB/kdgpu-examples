@@ -20,7 +20,7 @@
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 
-#include <drm/drm_fourcc.h>
+#include <libdrm/drm_fourcc.h>
 
 #include <array>
 #include <span>
