@@ -9,6 +9,7 @@
 add_subdirectory(gltf_renderer)
 add_subdirectory(compute_n_body)
 add_subdirectory(utility)
+add_subdirectory(ffmpeg_video)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_subdirectory(dma_buf_interop)
@@ -17,3 +18,6 @@ endif()
 if(KDGPU_BUILD_SLINT_EXAMPLE)
     add_subdirectory(slint)
 endif()
+
+
+
