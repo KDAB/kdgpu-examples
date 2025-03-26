@@ -25,22 +25,20 @@
 #include <array>
 #include <span>
 
-#include <iostream>
 #include <cassert>
 
 class DmaBufDemo
 {
 public:
-    explicit DmaBufDemo(int windowWidth, int windowHeight, KDGpuRenderer *vulkanRenderer);
+    explicit DmaBufDemo(int windowWidth, int windowHeight, const KDGpuRenderer *vulkanRenderer);
     ~DmaBufDemo();
 
     void renderLoop();
 
 private:
-    void setup(int width, int height);
+    void setup(int width, int height, const KDGpuRenderer *vulkanRenderer);
     void teardown();
 
-    KDGpuRenderer *m_vulkanRenderer = nullptr;
     GLFWwindow *m_window = nullptr;
     GLuint m_vbo = 0;
     GLuint m_vao = 0;
@@ -49,10 +47,9 @@ private:
     GLuint m_texture = 0;
 };
 
-DmaBufDemo::DmaBufDemo(int windowWidth, int windowHeight, KDGpuRenderer *vulkanRenderer)
-    : m_vulkanRenderer(vulkanRenderer)
+DmaBufDemo::DmaBufDemo(int windowWidth, int windowHeight, const KDGpuRenderer *vulkanRenderer)
 {
-    setup(windowWidth, windowHeight);
+    setup(windowWidth, windowHeight, vulkanRenderer);
 }
 
 DmaBufDemo::~DmaBufDemo()
@@ -60,10 +57,10 @@ DmaBufDemo::~DmaBufDemo()
     teardown();
 }
 
-void DmaBufDemo::setup(int windowWidth, int windowHeight)
+void DmaBufDemo::setup(int windowWidth, int windowHeight, const KDGpuRenderer *vulkanRenderer)
 {
     if (!glfwInit()) {
-        std::cerr << "Failed to initialize GLFW\n";
+        SPDLOG_ERROR("Failed to initialize GLFW");
         std::abort();
     }
 
@@ -72,9 +69,9 @@ void DmaBufDemo::setup(int windowWidth, int windowHeight)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
     glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
 
-    m_window = glfwCreateWindow(windowWidth, windowHeight, "hello", nullptr, nullptr);
+    m_window = glfwCreateWindow(windowWidth, windowHeight, "KDGpu DMA-BUF example", nullptr, nullptr);
     if (!m_window) {
-        std::cerr << "Failed to create GLFW window\n";
+        SPDLOG_ERROR("Failed to create GLFW window");
         glfwTerminate();
         std::abort();
     }
@@ -83,8 +80,8 @@ void DmaBufDemo::setup(int windowWidth, int windowHeight)
     assert(eglGetError() == EGL_SUCCESS);
     assert(glGetError() == GL_NO_ERROR);
 
-    std::cout << "OpenGL renderer: " << glGetString(GL_RENDERER) << '\n';
-    std::cout << "OpenGL version: " << glGetString(GL_VERSION) << '\n';
+    SPDLOG_INFO("OpenGL renderer: {}", reinterpret_cast<const char *>(glGetString(GL_RENDERER)));
+    SPDLOG_INFO("OpenGL version: {}", reinterpret_cast<const char *>(glGetString(GL_VERSION)));
 
     EGLDisplay display = eglGetCurrentDisplay();
     assert(display != EGL_NO_DISPLAY);
@@ -150,7 +147,7 @@ void main()
             std::string log;
             log.resize(len);
             glGetShaderInfoLog(shader, len, nullptr, log.data());
-            std::cerr << "Failed to compile shader: " << log;
+            SPDLOG_ERROR("Failed to compile shader: {}", log);
             std::abort();
         }
         return shader;
@@ -167,12 +164,10 @@ void main()
     if (linked != GL_TRUE) {
         GLint len = 0;
         glGetProgramiv(m_program, GL_INFO_LOG_LENGTH, &len);
-
         std::string log;
         log.resize(len);
         glGetProgramInfoLog(m_program, len, nullptr, log.data());
-
-        std::cerr << "Failed to link shader: " << log;
+        SPDLOG_ERROR("Failed to link shader: {}", log);
         std::abort();
     }
 
@@ -192,19 +187,19 @@ void main()
     auto *glEGLImageTargetTexture2DOES = reinterpret_cast<void (*)(GLenum target, EGLImage image)>(eglGetProcAddress("glEGLImageTargetTexture2DOES"));
     assert(glEGLImageTargetTexture2DOES);
 
-    const auto drmFormatModifier = m_vulkanRenderer->renderTargetDrmFormatModifier();
-    const auto memoryHandle = m_vulkanRenderer->renderTargetMemoryHandle();
+    const auto drmFormatModifier = vulkanRenderer->renderTargetDrmFormatModifier();
+    const auto memoryHandle = vulkanRenderer->renderTargetMemoryHandle();
     assert(std::holds_alternative<int>(memoryHandle.handle));
     const auto fd = std::get<int>(memoryHandle.handle);
-    std::cout << "DMA-BUF fd: " << fd << ", DRM format modifier: " << std::hex << drmFormatModifier << '\n';
+    SPDLOG_INFO("DMA-BUF fd: {}, DRM format modifier: {:x}", fd, drmFormatModifier);
 
-    const auto memoryPlaneLayouts = m_vulkanRenderer->renderTargetMemoryPlaneLayouts();
+    const auto memoryPlaneLayouts = vulkanRenderer->renderTargetMemoryPlaneLayouts();
     assert(memoryPlaneLayouts.size() == 1); // R8G8B8A8_UNORM should have just plane 0
     const auto memoryPlaneLayout = memoryPlaneLayouts.front();
 
     const std::vector<EGLAttrib> attributeList = {
-        EGL_WIDTH, m_vulkanRenderer->renderTargetWidth(),
-        EGL_HEIGHT, m_vulkanRenderer->renderTargetHeight(),
+        EGL_WIDTH, vulkanRenderer->renderTargetWidth(),
+        EGL_HEIGHT, vulkanRenderer->renderTargetHeight(),
         EGL_LINUX_DRM_FOURCC_EXT, DRM_FORMAT_XBGR8888,
         EGL_DMA_BUF_PLANE0_FD_EXT, fd,
         EGL_DMA_BUF_PLANE0_OFFSET_EXT, static_cast<EGLAttrib>(memoryPlaneLayout.offset),

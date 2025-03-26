@@ -183,7 +183,6 @@ void KDGpuRenderer::updateScene()
     static float angle = 0.0f;
     angle += elapsed * 0.1f;
 
-    m_transform = glm::mat4(1.0f);
     m_transform = glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(0.0f, 0.0f, 1.0f));
 
     auto bufferData = m_transformBuffer.map();
@@ -200,6 +199,8 @@ void KDGpuRenderer::teardown()
     m_pipeline = {};
     m_pipelineLayout = {};
     m_vertexBuffer = {};
+    m_transformBindGroup = {};
+    m_transformBuffer = {};
     m_commandBuffer = {};
     m_stagingBuffers.clear();
 }
