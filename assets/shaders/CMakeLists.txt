@@ -22,6 +22,7 @@ endif()
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   add_subdirectory(dma_buf_interop)
 endif()
+add_subdirectory(xr_drawing)
 
 add_subdirectory(xr_multiview_model_viewer)
 

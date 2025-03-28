@@ -7,3 +7,4 @@
 # Contact KDAB at <info@kdab.com> for commercial licensing options.
 #
 add_subdirectory(xr_multiview_model_viewer)
+add_subdirectory(xr_drawing)
