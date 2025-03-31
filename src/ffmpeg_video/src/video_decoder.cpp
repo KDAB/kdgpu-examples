@@ -30,6 +30,7 @@ extern "C" {
 #include <thread>
 #include <algorithm>
 #include <array>
+#include <chrono>
 
 #include <spdlog/spdlog.h>
 
@@ -43,6 +44,7 @@ const AVHWDeviceType targetHwType = AV_HWDEVICE_TYPE_CUDA;
 
 VideoDecoder::VideoDecoder()
     : m_formatContext(avformat_alloc_context())
+    , m_queue(std::make_unique<VideoQueue>())
 {
     assert(m_formatContext != NULL);
 }
@@ -50,6 +52,16 @@ VideoDecoder::VideoDecoder()
 VideoDecoder::~VideoDecoder()
 {
     if (m_isOpen) {
+
+        // Stop Decoding Thread
+        if (m_decodingThreadCanRun.load()) {
+            m_decodingThreadCanRun.store(false);
+            m_queue->terminate();
+            if (m_decodingThread.joinable())
+                m_decodingThread.join();
+            m_queue.reset();
+        }
+
         avformat_close_input(&m_formatContext);
         m_isOpen = false;
 
@@ -128,6 +140,18 @@ std::pair<size_t, size_t> VideoDecoder::videoResolution() const
 {
     assert(m_videoCodecParams != nullptr);
     return std::make_pair(m_videoCodecParams->width, m_videoCodecParams->height);
+}
+
+std::pair<size_t, size_t> VideoDecoder::timebase() const
+{
+    assert(m_formatContext != nullptr && m_videoStreamIndex >= 0);
+    const auto timeBase = m_formatContext->streams[m_videoStreamIndex]->time_base;
+    return std::make_pair(timeBase.num, timeBase.den);
+}
+
+VideoQueue *VideoDecoder::frameQueue()
+{
+    return m_queue.get();
 }
 
 AVPixelFormat hwPixFormat = AV_PIX_FMT_NONE;
@@ -242,34 +266,42 @@ bool VideoDecoder::canDecode()
     return true;
 }
 
-bool VideoDecoder::decodeFrame(std::function<void(AVFrame *, const std::array<size_t, 4> &)> uploadCallback)
+void VideoDecoder::startDecoding()
 {
-    int response = 0;
-    int how_many_packets_to_process = 8;
-
-    // fill the Packet with data from the Stream
-    const int ret = av_read_frame(m_formatContext, m_packet);
-
-    if (ret < 0) {
-        // Error or EOF
-        return false;
-    }
-
-    // if it's the video stream
-    if (m_packet->stream_index == m_videoStreamIndex) {
-        const int response = decodePacket(m_packet, uploadCallback);
-        av_packet_unref(m_packet);
-        return response >= 0;
-    }
-
-    return false;
+    m_decodingThreadCanRun.store(true);
+    m_decodingThread = std::thread(&VideoDecoder::decodeFrames, this);
 }
 
-int VideoDecoder::decodePacket(AVPacket *packet, std::function<void(AVFrame *, const std::array<size_t, 4> &)> uploadCallback)
+void VideoDecoder::decodeFrames()
+{
+    while (m_decodingThreadCanRun.load()) {
+        // fill the Packet with data from the Stream
+        const int ret = av_read_frame(m_formatContext, m_packet);
+
+        if (ret < 0) {
+            // Error or EOF
+            SPDLOG_WARN("Stopping Decoding Loop due to av_read_frame error");
+            break;
+        }
+
+        // if it's the video stream
+        if (m_packet->stream_index == m_videoStreamIndex) {
+            const int response = decodePacket(m_packet);
+            av_packet_unref(m_packet);
+            if (response < 0) {
+                SPDLOG_WARN("Stopping Decoding Loop due to packet decoding error");
+                break;
+            }
+        }
+    }
+    m_decodingThreadCanRun.store(false);
+}
+
+int VideoDecoder::decodePacket(AVPacket *packet)
 {
     KDUtils::ElapsedTimer timer;
     timer.start();
-    const size_t elapsedBeforeDecoding = timer.msecElapsed();
+    const size_t elapsedBeforeSendPacket = timer.msecElapsed();
 
     // Supply raw packet data as input to a decoder
     int response = avcodec_send_packet(m_codecContext, packet);
@@ -282,23 +314,30 @@ int VideoDecoder::decodePacket(AVPacket *packet, std::function<void(AVFrame *, c
 
     while (response >= 0) {
         // Return decoded output data (into a frame) from a decoder
+        const size_t elapsedBeforeRedeiveFrame = timer.msecElapsed();
         response = avcodec_receive_frame(m_codecContext, m_frame);
         const size_t elapsedAfterReceiveFrame = timer.msecElapsed();
 
-        if (response == AVERROR(EAGAIN) || response == AVERROR_EOF) {
+        if (response == AVERROR(EAGAIN)) { // Nothing more to read for now
             return 0;
-        } else if (response < 0) {
+        }
+        if (response == AVERROR_EOF) { // We've reached the end of the video
+            return response;
+        }
+
+        if (response < 0) { // Something else when wrong
             SPDLOG_WARN("Error while receiving a frame from the decoder: {}", response);
             return response;
         }
 
         if (response >= 0) {
             SPDLOG_WARN(
-                    "Frame {} (type={}, format={}) pts {}",
+                    "Frame {} (type={}, format={}) pts {} time_base {}/{}",
                     m_codecContext->frame_num,
                     av_get_picture_type_char(m_frame->pict_type),
                     m_frame->format,
-                    m_frame->pts);
+                    m_frame->pts,
+                    m_frame->time_base.num, m_frame->time_base.den);
 
             AVFrame *frameToUpload = m_frame;
             if (m_supportsHWDecoding && m_frame->format == hwPixFormat) {
@@ -310,8 +349,11 @@ int VideoDecoder::decodePacket(AVPacket *packet, std::function<void(AVFrame *, c
                 AVHWFramesContext *hwFramesCtx = (AVHWFramesContext *)m_frame->hw_frames_ctx->data;
                 // Set Correct Format on Frame
                 m_transferFrame->format = hwFramesCtx->sw_format;
+                m_transferFrame->pts = m_frame->pts;
                 frameToUpload = m_transferFrame;
             }
+
+            const size_t elapsedAfterHWTransfer = timer.msecElapsed();
 
             std::array<size_t, 4> bufferSizes;
             std::array<ptrdiff_t, 4> lineSizes;
@@ -321,12 +363,121 @@ int VideoDecoder::decodePacket(AVPacket *packet, std::function<void(AVFrame *, c
             lineSizes[3] = frameToUpload->linesize[3];
             av_image_fill_plane_sizes(bufferSizes.data(), (AVPixelFormat)frameToUpload->format, frameToUpload->height, lineSizes.data());
 
-            uploadCallback(frameToUpload, bufferSizes);
+            // Deep Copy the Frame and put it in our queue (see av_frame_make_writable to see what needs copying)
+            AVFrame *copy = av_frame_alloc();
+            assert(copy != nullptr);
+            copy->format = frameToUpload->format;
+            copy->width = frameToUpload->width;
+            copy->height = frameToUpload->height;
+            copy->nb_samples = frameToUpload->nb_samples;
+            copy->pts = frameToUpload->pts;
+            bool wasCopiedSuccessfully = true;
 
-            SPDLOG_WARN("Send Packet {}ms, Receive Frame {}ms",
-                        elapsedAfterSendPacket,
-                        elapsedAfterReceiveFrame - elapsedAfterSendPacket);
+            if (av_channel_layout_copy(&copy->ch_layout, &frameToUpload->ch_layout) < 0) {
+                SPDLOG_WARN("Failed to copy channel layout");
+                wasCopiedSuccessfully = false;
+            }
+            if (av_frame_get_buffer(copy, 0) < 0) {
+                SPDLOG_WARN("Failed to copy channel layout");
+                wasCopiedSuccessfully = false;
+            }
+            if (av_frame_copy(copy, frameToUpload) < 0) {
+                SPDLOG_WARN("Failed to copy frame data");
+                wasCopiedSuccessfully = false;
+            }
+            if (av_frame_copy_props(copy, frameToUpload) < 0) {
+                SPDLOG_WARN("Failed to copy frame props");
+                wasCopiedSuccessfully = false;
+            }
+
+            // Store Copy into queue
+            if (wasCopiedSuccessfully)
+                m_queue->addFrame(FrameData{ copy, bufferSizes });
+
+            const size_t elapsedAfterCopyAndStoreTransfer = timer.msecElapsed();
+
+            SPDLOG_WARN("Decoding: Send Packet {}ms, Receive Frame {}ms HW Transfer: {}ms VideoQueue Store: {}ms",
+                        elapsedAfterSendPacket - elapsedBeforeSendPacket,
+                        elapsedAfterReceiveFrame - elapsedBeforeRedeiveFrame,
+                        elapsedAfterHWTransfer - elapsedAfterReceiveFrame,
+                        elapsedAfterCopyAndStoreTransfer - elapsedAfterHWTransfer);
         }
     }
     return response;
+}
+
+VideoQueue::VideoQueue() = default;
+
+VideoQueue::~VideoQueue()
+{
+    // Thread ought to have been stopped by this point
+    for (AVFrame *f : m_framesToRelease)
+        av_frame_free(&f);
+    m_framesToRelease.clear();
+
+    for (FrameData &f : m_frames) {
+        if (f.frame) {
+            av_frame_free(&f.frame);
+        }
+    }
+}
+
+void VideoQueue::addFrame(const FrameData &frame)
+{
+    // Wait until we have enough room to add new frame
+    while (true) {
+        if (m_terminate.load())
+            return;
+        if (frameCount() < MaxFrameCount)
+            break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    std::scoped_lock lock{ m_mutex };
+    ++m_frameCount;
+
+    // Store new frames
+    m_frames[m_frameCount - 1] = frame;
+}
+
+std::optional<FrameData> VideoQueue::lastFrame()
+{
+    std::scoped_lock lock{ m_mutex };
+    // Check if we have a frame to return
+    if (m_frameCount == 0)
+        return {};
+    return m_frames[m_frameCount - 1];
+}
+
+std::optional<FrameData> VideoQueue::takeFrame()
+{
+    std::scoped_lock lock{ m_mutex };
+
+    // Release Frames Marked for Release
+    for (AVFrame *f : m_framesToRelease)
+        av_frame_free(&f);
+    m_framesToRelease.clear();
+
+    // Check if we have a frame to return
+    if (m_frameCount == 0)
+        return {};
+
+    // Decr Frame Count and retrieve Frame Data
+
+    --m_frameCount;
+    FrameData out = m_frames[m_frameCount];
+    // Store frame for release on the next call to takeFrame (as we know by then it will have been copied or discarded)
+    m_framesToRelease.push_back(out.frame);
+    return out;
+}
+
+size_t VideoQueue::frameCount()
+{
+    std::scoped_lock lock{ m_mutex };
+    return m_frameCount;
+}
+
+void VideoQueue::terminate()
+{
+    return m_terminate.store(true);
 }
