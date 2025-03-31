@@ -77,6 +77,7 @@ protected:
 
 private:
     KDGpu::Buffer m_vertexBuffer;
+    KDGpu::PushConstantRange m_aspectRatioPushConstant;
     KDGpu::BindGroupLayout m_bindGroupLayout;
     KDGpu::PipelineLayout m_pipelineLayout;
     KDGpu::GraphicsPipeline m_pipeline;

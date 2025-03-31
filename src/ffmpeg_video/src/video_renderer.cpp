@@ -63,6 +63,42 @@ struct Vertex {
     std::array<float, 2> texCoords;
 };
 
+struct Scaling {
+    float xScaling;
+    float yScaling;
+};
+
+Scaling computeScaling(float displayWidth, float displayHeight, float videoWidth, float videoHeight)
+{
+    float xScaling = 1.0f;
+    float yScaling = 1.0f;
+    const float videoAspectRatio = videoWidth / videoHeight;
+
+    float resizeWidth = displayWidth;
+    float resizeHeight = displayHeight;
+
+    resizeWidth = displayHeight * videoAspectRatio;
+    resizeHeight = resizeWidth / videoAspectRatio;
+
+    if (resizeWidth > displayWidth) {
+        resizeWidth = displayWidth;
+        resizeHeight = resizeWidth / videoAspectRatio;
+    }
+
+    if (resizeHeight > displayHeight) {
+        resizeHeight = displayHeight;
+        resizeWidth = resizeHeight * videoAspectRatio;
+    }
+
+    yScaling = resizeHeight / displayHeight;
+    xScaling = resizeWidth / displayWidth;
+
+    return Scaling{
+        .xScaling = xScaling,
+        .yScaling = yScaling,
+    };
+}
+
 } // namespace
 
 VideoRenderer::VideoRenderer()
@@ -358,9 +394,15 @@ void VideoRenderer::setVideoInformation(std::pair<size_t, size_t> videoResolutio
     });
 
     // Create a pipeline layout (array of bind group layouts)
+    m_aspectRatioPushConstant = PushConstantRange{
+        .offset = 0,
+        .size = 2 * sizeof(float),
+        .shaderStages = ShaderStageFlags(ShaderStageFlagBits::VertexBit)
+    };
+
     m_pipelineLayout = m_device.createPipelineLayout(PipelineLayoutOptions{
             .bindGroupLayouts = { m_bindGroupLayout },
-            .pushConstantRanges = {},
+            .pushConstantRanges = { m_aspectRatioPushConstant },
     });
 
     m_pipeline = m_device.createGraphicsPipeline(GraphicsPipelineOptions{
@@ -727,6 +769,10 @@ void VideoRenderer::render()
         opaquePass.setPipeline(m_pipeline);
         opaquePass.setVertexBuffer(0, m_vertexBuffer);
         opaquePass.setBindGroup(0, m_bindGroup);
+
+        const Scaling aspectRatioScaling = computeScaling(m_window->width(), m_window->height(),
+                                                          m_videoResolution.first, m_videoResolution.second);
+        opaquePass.pushConstant(m_aspectRatioPushConstant, &aspectRatioScaling);
         opaquePass.draw(DrawCommand{ .vertexCount = 6 });
     }
     opaquePass.end();
