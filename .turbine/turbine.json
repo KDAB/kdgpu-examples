@@ -1,0 +1,18 @@
+{
+    "commands": [
+        {
+            "name": "generate_android_example",
+            "class": "Turbine::GenerateAndroidExample",
+            "path": "./generate_android_example/generate_android_example.rb",
+            "usage": "generate_android_example name path/to \"Display Name\"",
+            "description": "Generates the skeleton of an Android project for an existing example"
+        },
+        {
+            "name": "android_openxr_manifest",
+            "class": "Turbine::AndroidOpenXRManifest",
+            "path": "./android_openxr_manifest/android_openxr_manifest.rb",
+            "usage": "android_openxr_manifest name path/to ",
+            "description": "Generates the manifest for an Android OpenXR project"
+        }
+    ]
+}
