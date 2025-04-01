@@ -20,4 +20,6 @@ if(KDGPU_BUILD_SLINT_EXAMPLE)
   add_subdirectory(slint)
 endif()
 
-add_subdirectory(xr)
+if (KDGPU_BUILD_KDXR)
+    add_subdirectory(xr)
+endif()
