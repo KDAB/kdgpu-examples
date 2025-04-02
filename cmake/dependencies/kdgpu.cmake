@@ -16,11 +16,7 @@ endif()
 if(NOT KDGpu_FOUND)
     FetchContent_Declare(
         KDGpu
-<<<<<<< HEAD
-        GIT_REPOSITORY ssh://codereview.kdab.com:29418/kdab/kdgpu
-=======
         GIT_REPOSITORY git@github.com:KDAB/KDGpu.git
->>>>>>> 627d151 (Fix KDGpu url)
         GIT_TAG main
         USES_TERMINAL_DOWNLOAD YES USES_TERMINAL_UPDATE YES
     )
