@@ -1,1 +1,2 @@
 add_subdirectory(gltf_render_albedo)
+add_subdirectory(gltf_render_pbr)
