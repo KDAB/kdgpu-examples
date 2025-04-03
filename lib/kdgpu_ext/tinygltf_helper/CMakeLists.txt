@@ -30,12 +30,17 @@ add_library(
     TinyGltfHelper::TinyGltfHelper ALIAS tinygltf-helper
 )
 
-set(TINYGLTF_HELPER_PUBLIC_LIBS tinygltf KDGpu::KDGpuExample spdlog::spdlog glm::glm)
-
 target_link_libraries(
     tinygltf-helper
-    PUBLIC ${TINYGLTF_HELPER_PUBLIC_LIBS}
+    PUBLIC
+    tinygltf
+    KDGpu::KDGpuExample
+    KDGpu::graphics
+    spdlog::spdlog
+    glm::glm
 )
+
+target_include_directories(tinygltf-helper PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     target_compile_definitions(tinygltf-helper PRIVATE UNICODE)

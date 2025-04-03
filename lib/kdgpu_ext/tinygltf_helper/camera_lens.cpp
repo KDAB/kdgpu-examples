@@ -12,8 +12,6 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
-using namespace KDBindings;
-
 namespace TinyGltfHelper {
 
 namespace {
@@ -53,27 +51,8 @@ glm::mat4 updateProjectionMatrix(float fov, float aspectRatio,
     return updatePerspectiveProjection(fov, aspectRatio,
                                        nearPlane, farPlane);
 }
-KDBINDINGS_DECLARE_FUNCTION(updateProjection, updateProjectionMatrix)
 
 } // namespace
-
-CameraLens::CameraLens()
-{
-    projectionMatrix = makeBoundProperty(
-            updateProjection(verticalFieldOfView, aspectRatio,
-                             left, right, top, bottom,
-                             nearPlane, farPlane, projectionType));
-
-    // Emit changed signal when projectionMatrix changes
-    projectionMatrix.valueChanged().connect([this] {
-        changed.emit(this);
-    });
-}
-
-CameraLens::~CameraLens()
-{
-    destroyed.emit(this);
-}
 
 void CameraLens::setOrthographicProjection(float _left, float _right,
                                            float _top, float _bottom,
@@ -96,6 +75,11 @@ void CameraLens::setPerspectiveProjection(float _fieldOfView, float _aspectRatio
     aspectRatio = _aspectRatio;
     nearPlane = _nearPlane;
     farPlane = _farPlane;
+}
+
+void CameraLens::update()
+{
+    projectionMatrix = updateProjectionMatrix(verticalFieldOfView, aspectRatio,left, right, top, bottom, nearPlane, farPlane, projectionType);
 }
 
 } // namespace TinyGltfHelper

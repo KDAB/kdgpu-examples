@@ -15,8 +15,6 @@
 
 #include <glm/glm.hpp>
 
-#include <kdbindings/property.h>
-
 namespace TinyGltfHelper {
 
 class CameraLens;
@@ -30,14 +28,19 @@ public:
 
     CameraLens &lens() noexcept { return m_lens; }
 
-    const KDBindings::Property<glm::mat4> viewMatrix{ glm::mat4(1.0f) };
+    glm::mat4 viewMatrix{ glm::mat4(1.0f) };
 
     void lookAt(const glm::vec3 &position,
                 const glm::vec3 &viewCenter,
                 const glm::vec3 &up);
 
+    glm::vec3 eyePosition() const { return m_eyePos; }
+
+    void update();
+
 private:
     CameraLens m_lens;
+    glm::vec3 m_eyePos;
 };
 
 } // namespace TinyGltfHelper

@@ -21,6 +21,8 @@
 #include <stdint.h>
 #include <string>
 
+#include <model/node_render_task.h>
+
 namespace TinyGltfHelper {
 
 enum class AlphaMode : uint32_t {
@@ -37,6 +39,14 @@ TINYGLTF_HELPER_EXPORT void calculateNodeTreeWorldTransforms(
         const glm::dmat4 &parentWorldMatrix,
         std::vector<bool> &visited,
         std::vector<glm::mat4> &worldTransforms);
+
+TINYGLTF_HELPER_EXPORT void calculateNodeTreeWorldTransforms(
+        const tinygltf::Model &model,
+        const int &nodeIndex,
+        const glm::dmat4 &parentWorldMatrix,
+        std::vector<bool> &visited,
+        std::vector<NodeRenderTask> &nodeRenderTasks);
+
 TINYGLTF_HELPER_EXPORT KDGpu::PrimitiveTopology topologyForPrimitiveMode(int mode);
 TINYGLTF_HELPER_EXPORT uint32_t numberOfComponentsForType(int type);
 TINYGLTF_HELPER_EXPORT KDGpu::IndexType indexTypeForComponentType(int componentType);

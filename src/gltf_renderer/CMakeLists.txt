@@ -6,7 +6,6 @@
 #
 # Contact KDAB at <info@kdab.com> for commercial licensing options.
 #
-add_subdirectory(tinygltf_helper)
 add_subdirectory(01_simple_gltf)
 add_subdirectory(02_buffer_layouts)
 add_subdirectory(03_pipeline_caching)

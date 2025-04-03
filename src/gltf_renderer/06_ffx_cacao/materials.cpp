@@ -879,9 +879,11 @@ void Materials::resize()
 
 void Materials::updateScene()
 {
+    m_camera.update();
+
     auto cameraBufferData = static_cast<float *>(m_cameraBuffer.map());
-    std::memcpy(cameraBufferData, glm::value_ptr(m_camera.lens().projectionMatrix()), sizeof(glm::mat4));
-    std::memcpy(cameraBufferData + 16, glm::value_ptr(m_camera.viewMatrix()), sizeof(glm::mat4));
+    std::memcpy(cameraBufferData, glm::value_ptr(m_camera.lens().projectionMatrix), sizeof(glm::mat4));
+    std::memcpy(cameraBufferData + 16, glm::value_ptr(m_camera.viewMatrix), sizeof(glm::mat4));
     m_cameraBuffer.unmap();
 
     static TimePoint s_lastFpsTimestamp;
@@ -901,7 +903,7 @@ void Materials::updateScene()
     m_renderStats.drawCount = 0;
     m_renderStats.vertexCount = 0;
 
-    m_ffxCacao->updateScene(m_camera.lens().projectionMatrix(), m_camera.viewMatrix());
+    m_ffxCacao->updateScene(m_camera.lens().projectionMatrix, m_camera.viewMatrix);
 }
 
 void Materials::render()

@@ -22,7 +22,13 @@ void Camera::lookAt(const glm::vec3 &position,
                     const glm::vec3 &viewCenter,
                     const glm::vec3 &up)
 {
-    *(const_cast<Property<glm::mat4> *>(&viewMatrix)) = glm::lookAt(position, viewCenter, up);
+    m_eyePos = position;
+    viewMatrix = glm::lookAt(position, viewCenter, up);
+}
+
+void Camera::update()
+{
+    m_lens.update();
 }
 
 } // namespace TinyGltfHelper

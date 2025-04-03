@@ -98,6 +98,65 @@ void calculateNodeTreeWorldTransforms(const tinygltf::Model &model,
     visited[nodeIndex] = true;
 }
 
+void calculateNodeTreeWorldTransforms(
+        const tinygltf::Model &model,
+        const int &nodeIndex,
+        const glm::dmat4 &parentWorldMatrix,
+        std::vector<bool> &visited,
+        std::vector<NodeRenderTask> &nodeRenderTasks)
+{
+    // If we have already processed this sub-tree, then bail out early.
+    if (visited.at(nodeIndex) == true)
+        return;
+
+    // Evaluate the model transform for the current node. This can either be stored directly
+    // as a 4x4 matrix or using properties for scale, rotation, translation.
+    const auto &node = model.nodes.at(nodeIndex);
+    glm::dmat4 nodeModelMatrix(1.0);
+    if (node.matrix.size() == 16) {
+        std::memcpy(glm::value_ptr(nodeModelMatrix), node.matrix.data(), 16 * sizeof(double));
+    } else {
+        // Build a model matrix from the SRT representation
+        glm::dvec3 scale(1.0);
+        if (node.scale.size() == 3)
+            std::memcpy(glm::value_ptr(scale), node.scale.data(), 3 * sizeof(double));
+        glm::dquat rotation(1.0, 0.0, 0.0, 0.0);
+        if (node.rotation.size() == 4)
+            std::memcpy(glm::value_ptr(rotation), node.rotation.data(), 4 * sizeof(double));
+        glm::dvec3 translation(0.0);
+        if (node.translation.size() == 3)
+            std::memcpy(glm::value_ptr(translation), node.translation.data(), 3 * sizeof(double));
+
+        glm::dmat4 mTrans = glm::translate(glm::dmat4(1.0f), translation);
+        glm::dmat4 mRot = glm::toMat4(rotation);
+        glm::dmat4 mScale = glm::scale(glm::dmat4(1.0f), scale);
+        nodeModelMatrix = mTrans * mRot * mScale;
+    }
+
+    // Combine with the parent transform
+    glm::dmat4 nodeWorldMatrix = parentWorldMatrix * nodeModelMatrix;
+
+    // Convert to float and store the result
+    auto &node_render_task = nodeRenderTasks.at(nodeIndex);
+    for (uint32_t col = 0; col < 4; ++col) {
+        const auto &srcCol = nodeWorldMatrix[col];
+        auto &dstCol = node_render_task.transformUniformBufferObject.data.nodeTransformMatrix[col];
+        for (uint32_t row = 0; row < 4; ++row) {
+            dstCol[row] = static_cast<float>(srcCol[row]);
+        }
+    }
+    // upload the new data to VRAM
+    node_render_task.transformUniformBufferObject.upload();
+
+    // Recurse to child nodes
+    for (const auto &childIndex : node.children) {
+        calculateNodeTreeWorldTransforms(model, childIndex, nodeWorldMatrix, visited, nodeRenderTasks);
+    }
+
+    // Record we are done with this sub-tree
+    visited[nodeIndex] = true;
+}
+
 PrimitiveTopology topologyForPrimitiveMode(int mode)
 {
     switch (mode) {
