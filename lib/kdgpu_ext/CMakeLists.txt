@@ -1,2 +1,3 @@
 add_subdirectory(KDGpuGraphics)
+add_subdirectory(GltfHolder)
 add_subdirectory(tinygltf_helper)

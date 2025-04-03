@@ -38,6 +38,7 @@ macro(add_data_file project_target target_name source_file dest_dir)
 endmacro()
 
 add_subdirectory(compositing)
+add_subdirectory(gltf)
 add_subdirectory(gltf_renderer)
 add_subdirectory(compute_n_body)
 add_subdirectory(utility)
