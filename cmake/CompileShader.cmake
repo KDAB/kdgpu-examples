@@ -18,115 +18,7 @@ if(NOT Vulkan_GLSLANG_VALIDATOR_EXECUTABLE)
     message(FATAL_ERROR "glslangValidator executable not found")
 endif()
 
-# Compile a shader using glslangValidator
-function(CompileShader target shader output)
-    # If just the named args are present use them. If there is an optional 4th argument
-    # we pass that in too. Useful for passing in -D define options to glslangValidator.
-    if(${ARGC} EQUAL 3)
-        add_custom_command(OUTPUT ${output}
-            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${shader}
-            COMMAND ${GLSLANG_VALIDATOR} -V ${CMAKE_CURRENT_SOURCE_DIR}/${shader} -o ${output}
-        )
-    else()
-        list(SUBLIST ARGV 3 -1 REMAINING_ARGS)
-        add_custom_command(OUTPUT ${output}
-            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${shader}
-            COMMAND ${GLSLANG_VALIDATOR} -V ${CMAKE_CURRENT_SOURCE_DIR}/${shader} -o ${output} ${REMAINING_ARGS}
-        )
-    endif()
-
-    add_custom_target(
-        ${target}
-        DEPENDS ${output}
-        COMMENT "Target to compile a shader"
-    )
-endfunction()
-
-# Compile raytracing shader using glslangValidator
-function(CompileRTShader target shader output)
-    add_custom_command(
-        OUTPUT ${output}
-        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${shader}
-        COMMAND ${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE} --quiet --target-env vulkan1.2
-        ${CMAKE_CURRENT_SOURCE_DIR}/${shader} -o ${output}
-        COMMENT "Compile shader ${shader} using glslangValidator"
-    )
-
-    add_custom_target(
-        ${target}
-        DEPENDS ${output}
-        COMMENT "Target to compile a shader"
-    )
-endfunction()
-
-# Compile task shader using glslangValidator
-function(CompileMeshTaskShader target shader output)
-    add_custom_command(
-        OUTPUT ${output}
-        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${shader}
-        COMMAND ${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE} --quiet --target-env vulkan1.2
-        ${CMAKE_CURRENT_SOURCE_DIR}/${shader} -o ${output}
-        COMMENT "Compile Mesh/Task shader ${shader} using glslangValidator"
-    )
-
-    add_custom_target(
-        ${target}
-        DEPENDS ${output}
-        COMMENT "Target to compile a mesh/task shader"
-    )
-endfunction()
-
-# Compile s shader set
-function(CompileShaderSet target name)
-    # TODO: in future we probably want to check which shaders we have instead of assuming vert/frag
-    CompileShader(${target}VertexShader ${name}.vert ${name}.vert.spv)
-    CompileShader(${target}FragmentShader ${name}.frag ${name}.frag.spv)
-
-    # TODO: for now generate ALL, in future would be better to build on case by case
-    add_custom_target(
-        ${target}Shaders ALL
-        DEPENDS ${target}VertexShader ${target}FragmentShader
-        COMMENT "Target to compile a shader set"
-    )
-endfunction()
-
-# Compile a shader using dxc
-function(
-    CompileHLSLShader
-    target
-    shader
-    output
-    type
-)
-    add_custom_command(
-        OUTPUT ${output}
-        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${shader}
-        COMMAND ${DXC_EXECUTABLE} -Emain -T${type}_6_1 -Zi $<IF:$<CONFIG:DEBUG>,-Od,-O3> -spirv -Fo${output}
-        ${CMAKE_CURRENT_SOURCE_DIR}/${shader}
-        COMMENT "Compile shader ${shader} using dxc"
-    )
-
-    add_custom_target(
-        ${target}
-        DEPENDS ${output}
-        COMMENT "Target to compile a shader"
-    )
-endfunction()
-
-# Compiles shader set using dxc
-function(CompileHLSLShaderSet target name)
-    # TODO: in future we probably want to check which shaders we have instead of assuming vert/frag
-    compilehlslshader(${target}VertexShader ${name}.ps.hlsl ${name}.ps.spv ps)
-    compilehlslshader(${target}FragmentShader ${name}.vs.hlsl ${name}.vs.spv vs)
-
-    # TODO: for now generate ALL, in future would be better to build on case by case
-    add_custom_target(
-        ${target}Shaders ALL
-        DEPENDS ${target}VertexShader ${target}FragmentShader
-        COMMENT "Target to compile a shader set using dxc"
-    )
-endfunction()
-
+# Compile shader variants
 function(CompileShaderVariants target variants_filename)
     # Run the helper script to generate json data for all configured shader variants
     execute_process(
@@ -154,7 +46,7 @@ function(CompileShaderVariants target variants_filename)
 
         # message(NOTICE "Adding target for " ${CURRENT_OUTPUT_FILENAME})
         set(SHADER_TARGET_NAME "${target}_${CURRENT_OUTPUT_FILENAME}")
-        CompileShader(${SHADER_TARGET_NAME} ${CURRENT_INTPUT_FILENAME} ${CURRENT_OUTPUT_FILENAME} ${CURRENT_DEFINES})
+        KDGpu_CompileShader(${SHADER_TARGET_NAME} ${CURRENT_INTPUT_FILENAME} ${CURRENT_OUTPUT_FILENAME} ${CURRENT_DEFINES})
 
         # TODO: for now generate ALL, in future would be better to build on case by case
         add_custom_target(

@@ -2,7 +2,7 @@ project(shaders)
 
 add_custom_target(${PROJECT_NAME} ALL)
 
-CompileShaderSet(textured_quad textured_quad)
+KDGpu_CompileShaderSet(textured_quad textured_quad)
 
 add_dependencies(
     ${PROJECT_NAME}

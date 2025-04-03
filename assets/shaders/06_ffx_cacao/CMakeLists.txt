@@ -6,4 +6,4 @@
 #
 # Contact KDAB at <info@kdab.com> for commercial licensing options.
 #
-CompileShaderSet(ffx_cacao_fullscreen fullscreenquad)
+KDGpu_CompileShaderSet(ffx_cacao_fullscreen fullscreenquad)

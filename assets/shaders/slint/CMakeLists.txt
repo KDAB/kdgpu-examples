@@ -6,4 +6,4 @@
 #
 # Contact KDAB at <info@kdab.com> for commercial licensing options.
 #
-CompileShaderSet(SlintKdgpuSimple simple)
+KDGpu_CompileShaderSet(SlintKdgpuSimple simple)

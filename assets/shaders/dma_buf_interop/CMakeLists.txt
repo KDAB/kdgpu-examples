@@ -6,4 +6,4 @@
 #
 # Contact KDAB at <info@kdab.com> for commercial licensing options.
 #
-CompileShaderSet(DmaBufInterop simple)
+KDGpu_CompileShaderSet(DmaBufInterop simple)

@@ -6,4 +6,4 @@
 #
 # Contact KDAB at <info@kdab.com> for commercial licensing options.
 #
-CompileShaderSet(GltfRendererSimpleGltf simple_gltf)
+KDGpu_CompileShaderSet(GltfRendererSimpleGltf simple_gltf)

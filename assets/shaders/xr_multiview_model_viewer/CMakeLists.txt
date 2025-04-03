@@ -8,5 +8,5 @@
 #
 CompileShaderVariants(xr_multiview_model_viewer_shaders materials-variants.json)
 
-CompileShaderSet(xr_multiview_model_viewer_solid solid)
-CompileShaderSet(xr_multiview_model_viewer_texture texture)
+KDGpu_CompileShaderSet(xr_multiview_model_viewer_solid solid)
+KDGpu_CompileShaderSet(xr_multiview_model_viewer_texture texture)
