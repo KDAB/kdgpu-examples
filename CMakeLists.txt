@@ -75,6 +75,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/dependencies.cmake)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+add_subdirectory(lib)
 add_subdirectory(src)
 add_subdirectory(assets)
 
