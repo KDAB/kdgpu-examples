@@ -38,3 +38,7 @@ Files: assets/shaders/*.h
 Copyright: 2020-2021 Advanced Micro Devices, Inc
 License: MIT
 
+# area light shader
+Files: src/gltf/gltf_render_pbr/src/pass/gltf_area_light/shader/glsl/gltf_area_light.frag.glsl
+Copyright: Copyright 2010-2016 Branimir Karadzic.
+License: BSD-2-Clause
