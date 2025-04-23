@@ -1,7 +1,6 @@
 /*
-This file is part of KDGpu Examples.
-
-  SPDX-FileCopyrightText: 2023 Klarälvdalens Datakonsult AB, a KDAB Group company <info@kdab.com>
+  This file is part of KDGpu Examples.
+  SPDX-FileCopyrightText: 2025 Klarälvdalens Datakonsult AB, a KDAB Group company <info@kdab.com>
 
   SPDX-License-Identifier: MIT
 
