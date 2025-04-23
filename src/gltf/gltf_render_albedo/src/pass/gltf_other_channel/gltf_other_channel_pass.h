@@ -9,13 +9,10 @@
 
 #pragma once
 
-#include <tinygltf_helper/camera.h>
+#include <camera/camera.h>
 
 #include <texture_target/texture_target.h>
 #include <GltfHolder/render_permutation/gltf_render_permutations.h>
-
-#include <pass/gltf_other_channel/uniform_buffer/camera.h>
-#include <uniform/uniform_buffer_object.h>
 
 #include <GltfHolder/material/rendering/gltf_materials_for_a_pass.h>
 
@@ -29,13 +26,11 @@ public:
     void addGltfHolder(kdgpu_ext::gltf_holder::GltfHolder &holder);
     void initializeShader();
 
-    void initialize(TextureTarget& depth_texture, Format depthFormat, Extent2D swapchainExtent);
+    void initialize(TextureTarget &depth_texture, Format depthFormat, Extent2D swapchainExtent, const kdgpu_ext::graphics::camera::Camera &camera);
     void resize(Extent2D swapChainExtent);
     void deinitialize();
 
-    void updateViewProjectionMatricesFromCamera(TinyGltfHelper::Camera& camera);
-
-    void render(CommandRecorder& commandRecorder);
+    void render(CommandRecorder &commandRecorder, const kdgpu_ext::graphics::camera::Camera &camera);
 
     TextureTarget& resultColorTextureTarget() { return m_colorTextureTarget; }
 
@@ -50,9 +45,6 @@ private:
 
     // object render permutations
     kdgpu_ext::gltf_holder::GltfRenderPermutations m_gltfRenderPermutations;
-
-    // uniform buffer for vertex shader, camera
-    UniformBufferObject<pass::geometry::uniform_buffer::camera, ShaderStageFlagBits::VertexBit> m_cameraUniformBufferObject = {};
 
     // depth texture from previous pass
     TextureTarget* m_depthTextureTarget = nullptr;

@@ -12,7 +12,7 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
-namespace TinyGltfHelper {
+namespace kdgpu_ext::graphics::camera {
 
 namespace {
 
@@ -77,9 +77,9 @@ void CameraLens::setPerspectiveProjection(float _fieldOfView, float _aspectRatio
     farPlane = _farPlane;
 }
 
-void CameraLens::update()
+void CameraLens::update(glm::mat4 &targetProjectionMatrix)
 {
-    projectionMatrix = updateProjectionMatrix(verticalFieldOfView, aspectRatio,left, right, top, bottom, nearPlane, farPlane, projectionType);
+    targetProjectionMatrix = updateProjectionMatrix(verticalFieldOfView, aspectRatio, left, right, top, bottom, nearPlane, farPlane, projectionType);
 }
 
 } // namespace TinyGltfHelper

@@ -33,12 +33,10 @@ void GltfAlbedoPass::initializeShader()
     m_shader.loadFragmentShader("gltf_albedo.frag.glsl.spv");
 }
 
-void GltfAlbedoPass::initialize(Format depthFormat, Extent2D swapchainExtent)
+void GltfAlbedoPass::initialize(Format depthFormat, Extent2D swapchainExtent, const kdgpu_ext::graphics::camera::Camera &camera)
 {
     m_colorTextureTarget.initialize(swapchainExtent, Format::R8G8B8A8_UNORM, TextureUsageFlagBits::ColorAttachmentBit);
     m_depthTextureTarget.initialize(swapchainExtent, depthFormat, TextureUsageFlagBits::DepthStencilAttachmentBit);
-
-    m_cameraUniformBufferObject.init(pass::gltf_albedo::shader::gltf_albedo::vertexUniformPassCameraBinding);
 
     // setup render targets
     m_regularRenderTarget.setColorTarget(&m_colorTextureTarget);
@@ -47,7 +45,7 @@ void GltfAlbedoPass::initialize(Format depthFormat, Extent2D swapchainExtent)
     // connect each custom/per-pass uniform buffer set with its layout
     m_shaderTextureChannels.setBindGroupLayoutForBindGroup(
         pass::gltf_albedo::shader::gltf_albedo::vertexUniformPassCameraSet,
-        &m_cameraUniformBufferObject.bindGroupLayout());
+        &camera.bindGroupLayout());
     m_shaderTextureChannels.setBindGroupLayoutForBindGroup(
         pass::gltf_albedo::shader::gltf_albedo::fragmentUniformPassLutTexturesSet,
         &m_textureSet->bindGroupLayout());
@@ -68,19 +66,11 @@ void GltfAlbedoPass::deinitialize()
     m_gltfRenderPermutations.deinitialize();
     m_shaderTextureChannels.deinitialize();
     m_shader.deinitialize();
-    m_cameraUniformBufferObject = {};
     m_colorTextureTarget.deinitialize();
     m_depthTextureTarget.deinitialize();
 }
 
-void GltfAlbedoPass::update_view_projection_matrices_from_camera(TinyGltfHelper::Camera &camera)
-{
-    m_cameraUniformBufferObject.data.view = camera.viewMatrix;
-    m_cameraUniformBufferObject.data.projection = camera.lens().projectionMatrix;
-    m_cameraUniformBufferObject.upload();
-}
-
-void GltfAlbedoPass::render(CommandRecorder &commandRecorder)
+void GltfAlbedoPass::render(CommandRecorder &commandRecorder, const kdgpu_ext::graphics::camera::Camera &camera)
 {
     // clang-format off
     auto render_pass = commandRecorder.beginRenderPass(
@@ -107,7 +97,7 @@ void GltfAlbedoPass::render(CommandRecorder &commandRecorder)
     // clang-format on
 
     // set global bind groups (descriptor set)
-    render_pass.setBindGroup(pass::gltf_albedo::shader::gltf_albedo::vertexUniformPassCameraSet, m_cameraUniformBufferObject.bindGroup(), m_gltfRenderPermutations.pipelineLayout);
+    render_pass.setBindGroup(pass::gltf_albedo::shader::gltf_albedo::vertexUniformPassCameraSet, camera.bindGroup(), m_gltfRenderPermutations.pipelineLayout);
     render_pass.setBindGroup(pass::gltf_albedo::shader::gltf_albedo::fragmentUniformPassLutTexturesSet, m_textureSet->bindGroup(), m_gltfRenderPermutations.pipelineLayout);
 
     // render

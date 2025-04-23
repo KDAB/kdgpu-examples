@@ -31,9 +31,12 @@ class KeyReleaseEvent;
 class MouseMoveEvent;
 } // namespace KDGui
 
+namespace kdgpu_ext::graphics::camera {
+class Camera;
+}
+
 namespace TinyGltfHelper {
 
-class Camera;
 
 class TINYGLTF_HELPER_EXPORT CameraController : public KDFoundation::Object
 {
@@ -49,7 +52,7 @@ public:
     KDBindings::Property<float> maxShakeAngle{ 2.5f }; // Degrees
     KDBindings::Property<float> shakeSpeed{ 8.0f }; // Speed we scale simplex noise by
 
-    KDBindings::Property<Camera *> camera{ nullptr };
+    KDBindings::Property<kdgpu_ext::graphics::camera::Camera *> camera{ nullptr };
     KDBindings::Property<bool> enabled{ false };
     KDBindings::Property<float> moveSpeed{ 10.0f };
     KDBindings::Property<float> mouseSensitivity{ 0.1f };

@@ -18,13 +18,13 @@
 
 #include <texture/texture_set.h>
 
-#include <tinygltf_helper/camera.h>
+#include <camera/camera.h>
 
 class GltfRenderAlbedoEngineLayer : public KDGpuExample::SimpleExampleEngineLayer
 {
 public:
     GltfRenderAlbedoEngineLayer();
-    TinyGltfHelper::Camera *camera() { return &m_camera; }
+    kdgpu_ext::graphics::camera::Camera *camera() { return &m_camera; }
 
 protected:
     void initializeScene() override;
@@ -37,7 +37,7 @@ private:
     float time();
     void renderPasses(CommandRecorder &commandRecorder);
 
-    TinyGltfHelper::Camera m_camera;
+    kdgpu_ext::graphics::camera::Camera m_camera;
 
     // GLTF
     kdgpu_ext::gltf_holder::GltfHolder m_flightHelmet;

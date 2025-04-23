@@ -15,7 +15,7 @@
 
 namespace pass::basic_geometry {
 
-void BasicGeometryPass::initialize(TextureTarget &depthTexture, const Extent2D swapchainExtent)
+void BasicGeometryPass::initialize(TextureTarget &depthTexture, const Extent2D swapchainExtent, const kdgpu_ext::graphics::camera::Camera &camera)
 {
     auto &device = kdgpu_ext::graphics::GlobalResources::instance().graphicsDevice();
 
@@ -51,8 +51,6 @@ void BasicGeometryPass::initialize(TextureTarget &depthTexture, const Extent2D s
     m_colorTextureTarget.initialize(swapchainExtent, Format::R8G8B8A8_UNORM, TextureUsageFlagBits::ColorAttachmentBit);
     m_depthTextureTarget = &depthTexture;
 
-    m_cameraUniformBufferObject.init(shader::basic_geometry::vertexUniformPassCameraBinding);
-
     // setup render targets
     m_renderTarget.setColorTarget(&m_colorTextureTarget);
     m_renderTarget.setDepthTarget(m_depthTextureTarget);
@@ -68,7 +66,7 @@ void BasicGeometryPass::initialize(TextureTarget &depthTexture, const Extent2D s
     const PipelineLayoutOptions pipelineLayoutOptions = {
         .bindGroupLayouts = {
                 m_textureSet->bindGroupLayout(),
-                m_cameraUniformBufferObject.bindGroupLayout(),
+                camera.bindGroupLayout(),
         },
     };
     m_pipelineLayout = device.createPipelineLayout(pipelineLayoutOptions);
@@ -105,7 +103,6 @@ void BasicGeometryPass::deinitialize()
 {
     m_shader.deinitialize();
     m_quad.deinitialize();
-    m_cameraUniformBufferObject = {};
     m_colorOutputSampler = {};
     m_colorTextureTarget.deinitialize();
     m_depthTextureTarget = nullptr;
@@ -116,14 +113,7 @@ void BasicGeometryPass::deinitialize()
     m_graphicsPipeline = {};
 }
 
-void BasicGeometryPass::updateViewProjectionMatricesFromCamera(TinyGltfHelper::Camera &camera)
-{
-    m_cameraUniformBufferObject.data.view = camera.viewMatrix;
-    m_cameraUniformBufferObject.data.projection = camera.lens().projectionMatrix;
-    m_cameraUniformBufferObject.upload();
-}
-
-void BasicGeometryPass::render(CommandRecorder& commandRecorder)
+void BasicGeometryPass::render(CommandRecorder &commandRecorder, const kdgpu_ext::graphics::camera::Camera &camera)
 {
     auto render_pass = commandRecorder.beginRenderPass(
         {
@@ -149,7 +139,7 @@ void BasicGeometryPass::render(CommandRecorder& commandRecorder)
     );
     render_pass.setPipeline(m_graphicsPipeline);
     render_pass.setBindGroup(pass::basic_geometry::shader::basic_geometry::fragmentUniformPassColorTextureSet, m_textureSet->bindGroup(), m_pipelineLayout);
-    render_pass.setBindGroup(pass::basic_geometry::shader::basic_geometry::vertexUniformPassCameraSet, m_cameraUniformBufferObject.bindGroup(), m_pipelineLayout);
+    render_pass.setBindGroup(pass::basic_geometry::shader::basic_geometry::vertexUniformPassCameraSet, camera.bindGroup(), m_pipelineLayout);
 
     m_quad.render(render_pass);
     render_pass.end();

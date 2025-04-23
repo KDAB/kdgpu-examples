@@ -24,14 +24,17 @@ GltfRenderAlbedoEngineLayer::GltfRenderAlbedoEngineLayer()
 
 void GltfRenderAlbedoEngineLayer::initializeScene()
 {
-    // set a closer far plane
-    camera()->lens().farPlane = 50.0f;
-
     // set up global resources (device)
     kdgpu_ext::graphics::GlobalResources::instance().setGraphicsDevice(m_device);
 
     // initialize global gltf variables
     kdgpu_ext::gltf_holder::GltfHolderGlobal::instance().initialize();
+
+    // initialize uniform buffer in camera
+    m_camera.initialize(0);
+
+    // set a closer far plane
+    m_camera.lens().farPlane = 50.0f;
 
     std::string baseDir = "gltf/gltf_render_albedo/";
     auto assetDir = KDGpuExample::assetDir();
@@ -61,7 +64,7 @@ void GltfRenderAlbedoEngineLayer::initializeScene()
         m_albedoPass.m_textureSet = &m_textureSet;
         m_albedoPass.initializeShader();
         m_albedoPass.addGltfHolder(m_flightHelmet);
-        m_albedoPass.initialize(m_depthFormat, m_swapchainExtent);
+        m_albedoPass.initialize(m_depthFormat, m_swapchainExtent, m_camera);
     }
 
     // initialize "other channel" pass
@@ -69,7 +72,7 @@ void GltfRenderAlbedoEngineLayer::initializeScene()
         m_otherChannelPass.m_textureSet = &m_otherChannelTextureSet;
         m_otherChannelPass.initializeShader();
         m_otherChannelPass.addGltfHolder(m_flightHelmet);
-        m_otherChannelPass.initialize(m_albedoPass.resultDepthTextureTarget(), m_depthFormat, m_swapchainExtent);
+        m_otherChannelPass.initialize(m_albedoPass.resultDepthTextureTarget(), m_depthFormat, m_swapchainExtent, m_camera);
     }
 
     // initialize render texture to the screen pass (swapchain)
@@ -101,6 +104,8 @@ void GltfRenderAlbedoEngineLayer::cleanupScene()
     // deinitialize command buffer
     m_commandBuffer = {};
 
+    m_camera.deinitialize();
+
     // clean up global gltf variable
     kdgpu_ext::gltf_holder::GltfHolderGlobal::instance().deinitialize();
 }
@@ -113,9 +118,6 @@ void GltfRenderAlbedoEngineLayer::updateScene()
 
     m_flightHelmet.update();
 
-    m_albedoPass.update_view_projection_matrices_from_camera(m_camera);
-    m_otherChannelPass.updateViewProjectionMatricesFromCamera(m_camera);
-
     // set time in render-to-screen pass to move the vertical line
     m_compositingPass.update(currentTime);
 }
@@ -124,12 +126,12 @@ void GltfRenderAlbedoEngineLayer::renderPasses(CommandRecorder &commandRecorder)
 {
     // Render Geometry To Texture
     {
-        m_albedoPass.render(commandRecorder);
+        m_albedoPass.render(commandRecorder, m_camera);
     }
 
     // Render Other Channel To Texture
     {
-        m_otherChannelPass.render(commandRecorder);
+        m_otherChannelPass.render(commandRecorder, m_camera);
     }
 
     // Render Color Texture To Screen

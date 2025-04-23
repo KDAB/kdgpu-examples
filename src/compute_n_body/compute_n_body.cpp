@@ -464,8 +464,8 @@ void ComputeNBody::cleanupScene()
 void ComputeNBody::updateScene()
 {
     // Update the camera matrices
-    m_graphicsUboData.projection = m_camera.lens().projectionMatrix;
-    m_graphicsUboData.view = m_camera.viewMatrix;
+    m_graphicsUboData.view = m_camera.viewMatrix();
+    m_graphicsUboData.projection = m_camera.projectionMatrix();
     std::memcpy(m_mappedGraphicsUbo, &m_graphicsUboData, sizeof(GraphicsUbo));
 
     // Update the compute UBO

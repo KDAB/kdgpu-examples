@@ -33,12 +33,10 @@ void GltfOtherChannelPass::initializeShader()
     m_shader.loadFragmentShader("gltf_other_channel.frag.glsl.spv");
 }
 
-void GltfOtherChannelPass::initialize(TextureTarget& depth_texture, Format depthFormat, Extent2D swapchainExtent)
+void GltfOtherChannelPass::initialize(TextureTarget &depth_texture, Format depthFormat, Extent2D swapchainExtent, const kdgpu_ext::graphics::camera::Camera &camera)
 {
     m_colorTextureTarget.initialize(swapchainExtent, Format::R8G8B8A8_UNORM, TextureUsageFlagBits::ColorAttachmentBit);
     m_depthTextureTarget = &depth_texture;
-
-    m_cameraUniformBufferObject.init(shader::gltf_other_channel::vertexUniformPassCameraBinding);
 
     // setup render targets
     m_regularRenderTarget.setColorTarget(&m_colorTextureTarget);
@@ -54,7 +52,7 @@ void GltfOtherChannelPass::initialize(TextureTarget& depth_texture, Format depth
     // connect each custom/per-pass uniform buffer set with its layout
     m_shaderTextureChannels.setBindGroupLayoutForBindGroup(
         shader::gltf_other_channel::vertexUniformPassCameraSet,
-        &m_cameraUniformBufferObject.bindGroupLayout());
+        &camera.bindGroupLayout());
     m_shaderTextureChannels.setBindGroupLayoutForBindGroup(
         shader::gltf_other_channel::fragmentUniformPassOtherChannelTextureSet,
         &m_textureSet->bindGroupLayout());
@@ -75,19 +73,11 @@ void GltfOtherChannelPass::deinitialize()
     m_gltfRenderPermutations.deinitialize();
     m_shaderTextureChannels.deinitialize();
     m_shader.deinitialize();
-    m_cameraUniformBufferObject = {};
     m_colorTextureTarget.deinitialize();
     m_depthTextureTarget = nullptr;
 }
 
-void GltfOtherChannelPass::updateViewProjectionMatricesFromCamera(TinyGltfHelper::Camera &camera)
-{
-    m_cameraUniformBufferObject.data.view = camera.viewMatrix;
-    m_cameraUniformBufferObject.data.projection = camera.lens().projectionMatrix;
-    m_cameraUniformBufferObject.upload();
-}
-
-void GltfOtherChannelPass::render(CommandRecorder &commandRecorder)
+void GltfOtherChannelPass::render(CommandRecorder &commandRecorder, const kdgpu_ext::graphics::camera::Camera &camera)
 {
     // clang-format off
     auto render_pass = commandRecorder.beginRenderPass(
@@ -115,7 +105,7 @@ void GltfOtherChannelPass::render(CommandRecorder &commandRecorder)
     // clang-format on
 
     // set global bind groups (descriptor set)
-    render_pass.setBindGroup(shader::gltf_other_channel::vertexUniformPassCameraSet, m_cameraUniformBufferObject.bindGroup(), m_gltfRenderPermutations.pipelineLayout);
+    render_pass.setBindGroup(shader::gltf_other_channel::vertexUniformPassCameraSet, camera.bindGroup(), m_gltfRenderPermutations.pipelineLayout);
     render_pass.setBindGroup(shader::gltf_other_channel::fragmentUniformPassOtherChannelTextureSet, m_textureSet->bindGroup(), m_gltfRenderPermutations.pipelineLayout);
 
     // render

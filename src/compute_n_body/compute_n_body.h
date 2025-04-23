@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include <tinygltf_helper/camera.h>
+#include <camera/camera.h>
 
 #include <KDGpuExample/simple_example_engine_layer.h>
 
@@ -47,7 +47,7 @@ class ComputeNBody : public KDGpuExample::SimpleExampleEngineLayer
 public:
     ComputeNBody();
 
-    TinyGltfHelper::Camera *camera() { return &m_camera; }
+    kdgpu_ext::graphics::camera::Camera *camera() { return &m_camera; }
 
 protected:
     void initializeScene() override;
@@ -63,7 +63,7 @@ private:
     void createRenderTarget();
     Texture createTextureFromKtxFile(const std::string &filename);
 
-    TinyGltfHelper::Camera m_camera;
+    kdgpu_ext::graphics::camera::Camera m_camera;
 
     const uint32_t m_particlesPerAttractor{ 4 * 1024 };
     ComputeUbo m_computeUboData;

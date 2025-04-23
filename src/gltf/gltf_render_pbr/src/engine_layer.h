@@ -20,13 +20,13 @@
 
 #include <texture/texture_set.h>
 
-#include <tinygltf_helper/camera.h>
+#include <camera/camera.h>
 
 class GltfRenderPbrEngineLayer : public KDGpuExample::SimpleExampleEngineLayer
 {
 public:
     GltfRenderPbrEngineLayer();
-    TinyGltfHelper::Camera *camera() { return &m_camera; }
+    kdgpu_ext::graphics::camera::Camera *camera() { return &m_camera; }
 
 protected:
     void initializeScene() override;
@@ -41,7 +41,7 @@ private:
 
     void drawControls(ImGuiContext *ctx);
 
-    TinyGltfHelper::Camera m_camera;
+    kdgpu_ext::graphics::camera::Camera m_camera;
 
     // GLTF
     kdgpu_ext::gltf_holder::GltfHolder m_flightHelmet;

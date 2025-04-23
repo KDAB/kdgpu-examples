@@ -12,11 +12,9 @@
 
 #include <glm/glm.hpp>
 
-#include <tinygltf_helper/tinygltf_helper_export.h>
+namespace kdgpu_ext::graphics::camera {
 
-namespace TinyGltfHelper {
-
-class TINYGLTF_HELPER_EXPORT CameraLens
+class CameraLens
 {
 public:
     CameraLens() = default;
@@ -32,9 +30,6 @@ public:
     float farPlane{ 1000.0f };
     ProjectionType projectionType{ ProjectionType::Perspective };
 
-    // Readonly
-    glm::mat4 projectionMatrix{};
-
     // Perspective
     float verticalFieldOfView{ 25.0f };
     float aspectRatio{ 1.0f };
@@ -47,7 +42,7 @@ public:
 
     void setOrthographicProjection(float left, float right, float top, float bottom, float nearPlane, float farPlane);
     void setPerspectiveProjection(float verticalFieldOfView, float aspectRatio, float nearPlane, float farPlane);
-    void update();
+    void update(glm::mat4& projectionMatrix);
 };
 
 } // namespace TinyGltfHelper

@@ -7,18 +7,14 @@
 # Contact KDAB at <info@kdab.com> for commercial licensing options.
 #
 set(SOURCES
-    camera.cpp
     camera_controller.cpp
     camera_controller_layer.cpp
-    camera_lens.cpp
     tinygltf_helper.cpp
 )
 
 set(HEADERS
-    camera.h
     camera_controller.h
     camera_controller_layer.h
-    camera_lens.h
     tinygltf_helper.h
 )
 

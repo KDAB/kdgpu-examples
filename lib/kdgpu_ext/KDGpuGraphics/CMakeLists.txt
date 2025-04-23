@@ -12,6 +12,8 @@ project(kdgpu_graphics)
 find_package(glm)
 
 set(SOURCES
+    src/camera/camera.cpp
+    src/camera/camera_lens.cpp
     src/render_target/render_target.cpp
     src/texture_target/texture_target.cpp
     src/texture/single_texture.cpp

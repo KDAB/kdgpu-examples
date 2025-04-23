@@ -13,7 +13,7 @@
 #include "pipeline_key.h"
 #include "primitive_key.h"
 
-#include <tinygltf_helper/camera.h>
+#include <camera/camera.h>
 
 #include <KDGpuExample/simple_example_engine_layer.h>
 
@@ -85,7 +85,7 @@ struct RenderStats {
 class Instancing : public KDGpuExample::SimpleExampleEngineLayer
 {
 public:
-    TinyGltfHelper::Camera *camera() { return &m_camera; }
+    kdgpu_ext::graphics::camera::Camera *camera() { return &m_camera; }
 
 protected:
     void initializeScene() override;
@@ -114,7 +114,7 @@ private:
                        uint32_t nodeIndex,
                        PrimitiveInstances &primitiveInstances);
 
-    TinyGltfHelper::Camera m_camera;
+    kdgpu_ext::graphics::camera::Camera m_camera;
     Buffer m_cameraBuffer;
     BindGroup m_cameraBindGroup;
 

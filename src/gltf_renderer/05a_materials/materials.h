@@ -13,7 +13,7 @@
 #include "pipeline_key.h"
 #include "primitive_key.h"
 
-#include <tinygltf_helper/camera.h>
+#include <camera/camera.h>
 
 #include <KDGpuExample/simple_example_engine_layer.h>
 
@@ -118,7 +118,7 @@ class Materials : public KDGpuExample::SimpleExampleEngineLayer
 public:
     Materials();
 
-    TinyGltfHelper::Camera *camera() { return &m_camera; }
+    kdgpu_ext::graphics::camera::Camera *camera() { return &m_camera; }
 
 protected:
     void initializeScene() override;
@@ -159,7 +159,7 @@ private:
 
     void createRenderTarget();
 
-    TinyGltfHelper::Camera m_camera;
+    kdgpu_ext::graphics::camera::Camera m_camera;
     Buffer m_cameraBuffer;
     BindGroup m_cameraBindGroup;
 

@@ -10,7 +10,7 @@
 
 #include "camera_controller.h"
 
-#include <tinygltf_helper/camera.h>
+#include <camera/camera.h>
 
 #include <KDGpuExample/engine.h>
 
@@ -42,7 +42,7 @@ CameraController::CameraController()
             m_ignoreFirstMouseMove = true;
     });
 
-    camera.valueChanged().connect([this](const Camera *camera) {
+    camera.valueChanged().connect([this](const kdgpu_ext::graphics::camera::Camera *camera) {
         if (camera) {
             this->update();
             this->apply();

@@ -25,14 +25,17 @@ GltfRenderPbrEngineLayer::GltfRenderPbrEngineLayer()
 
 void GltfRenderPbrEngineLayer::initializeScene()
 {
-    // set a closer far plane
-    camera()->lens().farPlane = 50.0f;
-
     // set up global resources (device)
     kdgpu_ext::graphics::GlobalResources::instance().setGraphicsDevice(m_device);
 
     // initialize global gltf variables
     kdgpu_ext::gltf_holder::GltfHolderGlobal::instance().initialize();
+
+    // initialize uniform buffer in camera
+    m_camera.initialize(0);
+
+    // set a closer far plane
+    camera()->lens().farPlane = 50.0f;
 
     // asset path
     std::string baseDir = "gltf/gltf_render_pbr/";
@@ -105,7 +108,7 @@ void GltfRenderPbrEngineLayer::initializeScene()
         m_pbrPass.m_pbrTextureSet = &m_pbrLutAndEnvironmentTextures;
         m_pbrPass.initializeShader();
         m_pbrPass.addGltfHolder(m_flightHelmet);
-        m_pbrPass.initialize(m_depthFormat, m_swapchainExtent);
+        m_pbrPass.initialize(m_depthFormat, m_swapchainExtent, m_camera);
     }
 
     // initialize "other channel" pass
@@ -113,13 +116,13 @@ void GltfRenderPbrEngineLayer::initializeScene()
         m_otherChannelPass.m_textureSet = &m_otherChannelTextureSet;
         m_otherChannelPass.initializeShader();
         m_otherChannelPass.addGltfHolder(m_flightHelmet);
-        m_otherChannelPass.initialize(m_pbrPass.resultDepthTextureTarget(), m_swapchainExtent);
+        m_otherChannelPass.initialize(m_pbrPass.resultDepthTextureTarget(), m_swapchainExtent, m_camera);
     }
 
     // initialize "basic geometry" pass
     {
         m_basicGeometryPass.m_textureSet = &m_basicGeometryTextureSet;
-        m_basicGeometryPass.initialize(m_pbrPass.resultDepthTextureTarget(), m_swapchainExtent);
+        m_basicGeometryPass.initialize(m_pbrPass.resultDepthTextureTarget(), m_swapchainExtent, m_camera);
     }
 
     // initialize area light pass
@@ -127,7 +130,7 @@ void GltfRenderPbrEngineLayer::initializeScene()
         m_areaLightPass.m_ltcTextureSet = &m_areaLightChannels;
         m_areaLightPass.initializeShader();
         m_areaLightPass.addGltfHolder(m_flightHelmet);
-        m_areaLightPass.initialize(m_pbrPass.resultDepthTextureTarget(), m_swapchainExtent);
+        m_areaLightPass.initialize(m_pbrPass.resultDepthTextureTarget(), m_swapchainExtent, m_camera);
     }
 
     // initialize render texture to the screen pass (swapchain)
@@ -164,6 +167,8 @@ void GltfRenderPbrEngineLayer::cleanupScene()
     // deinitialize command buffer
     m_commandBuffer = {};
 
+    m_camera.deinitialize();
+
     // clean up global gltf variable
     kdgpu_ext::gltf_holder::GltfHolderGlobal::instance().deinitialize();
 }
@@ -176,14 +181,12 @@ void GltfRenderPbrEngineLayer::updateScene()
 
     m_flightHelmet.update();
 
-    m_pbrPass.updateViewProjectionMatricesFromCamera(m_camera);
-    m_otherChannelPass.updateViewProjectionMatricesFromCamera(m_camera);
-    m_basicGeometryPass.updateViewProjectionMatricesFromCamera(m_camera);
+    m_pbrPass.updateConfiguration();
 
     // area light pass
     {
         m_areaLightPass.setQuadVertices(m_basicGeometryPass.quadVertices());
-        m_areaLightPass.updateViewProjectionMatricesFromCamera(m_camera);
+        m_areaLightPass.updateEyePositionFromCamera(m_camera);
     }
 
     // set time in render-to-screen pass to move the vertical line
@@ -194,22 +197,22 @@ void GltfRenderPbrEngineLayer::render_passes(CommandRecorder &commandRecorder)
 {
     // Render GLTF Geometry using PBR shader to Texture
     {
-        m_pbrPass.render(commandRecorder);
+        m_pbrPass.render(commandRecorder, m_camera);
     }
 
     // Render GLTF Geometry with another (blue dots) texture channel To Texture
     {
-        m_otherChannelPass.render(commandRecorder);
+        m_otherChannelPass.render(commandRecorder, m_camera);
     }
 
     // Render Basic Geometry pass (tasked with rendering the textured quad for the area light)
     {
-        m_basicGeometryPass.render(commandRecorder);
+        m_basicGeometryPass.render(commandRecorder, m_camera);
     }
 
     // Render Area Light pass (diffuse and specular)
     {
-        m_areaLightPass.render(commandRecorder);
+        m_areaLightPass.render(commandRecorder, m_camera);
     }
 
 

@@ -464,8 +464,8 @@ void PipelineCaching::updateScene()
     m_camera.update();
 
     auto cameraBufferData = static_cast<float *>(m_cameraBuffer.map());
-    std::memcpy(cameraBufferData, glm::value_ptr(m_camera.lens().projectionMatrix), sizeof(glm::mat4));
-    std::memcpy(cameraBufferData + 16, glm::value_ptr(m_camera.viewMatrix), sizeof(glm::mat4));
+    std::memcpy(cameraBufferData, glm::value_ptr(m_camera.projectionMatrix()), sizeof(glm::mat4));
+    std::memcpy(cameraBufferData + 16, glm::value_ptr(m_camera.viewMatrix()), sizeof(glm::mat4));
     m_cameraBuffer.unmap();
 
     static TimePoint s_lastFpsTimestamp;

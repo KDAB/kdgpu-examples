@@ -33,12 +33,11 @@ void gltfPbrPass::initializeShader()
     m_shader.loadFragmentShader("gltf_pbr.frag.glsl.spv");
 }
 
-void gltfPbrPass::initialize(Format depthFormat, Extent2D swapchainExtent)
+void gltfPbrPass::initialize(Format depthFormat, Extent2D swapchainExtent, const kdgpu_ext::graphics::camera::Camera &camera)
 {
     m_colorTextureTarget.initialize(swapchainExtent, Format::R8G8B8A8_UNORM, TextureUsageFlagBits::ColorAttachmentBit);
     m_depthTextureTarget.initialize(swapchainExtent, depthFormat, TextureUsageFlagBits::DepthStencilAttachmentBit);
 
-    m_cameraUniformBufferObject.init(shader::gltf_pbr::vertexUniformPassCameraBinding);
     m_materialUniformBufferObject.init(shader::gltf_pbr::fragmentUniformPassMaterialBinding);
 
     // setup render targets
@@ -48,7 +47,7 @@ void gltfPbrPass::initialize(Format depthFormat, Extent2D swapchainExtent)
     // connect each custom/per-pass uniform buffer set with its layout
     m_shaderTextureChannels.setBindGroupLayoutForBindGroup(
         shader::gltf_pbr::vertexUniformPassCameraSet,
-        &m_cameraUniformBufferObject.bindGroupLayout());
+        &camera.bindGroupLayout());
 
     m_shaderTextureChannels.setBindGroupLayoutForBindGroup(
         shader::gltf_pbr::fragmentUniformPassConfigurationSet,
@@ -75,7 +74,6 @@ void gltfPbrPass::deinitialize()
     m_gltfRenderPermutations.deinitialize();
     m_shaderTextureChannels.deinitialize();
     m_shader.deinitialize();
-    m_cameraUniformBufferObject = {};
     m_materialUniformBufferObject = {};
     m_colorTextureTarget.deinitialize();
     m_depthTextureTarget.deinitialize();
@@ -91,18 +89,14 @@ void gltfPbrPass::setIblIntensity(float intensity)
     m_materialUniformBufferObject.data.iblIntensity = intensity;
 }
 
-void gltfPbrPass::updateViewProjectionMatricesFromCamera(TinyGltfHelper::Camera &camera)
+void gltfPbrPass::updateConfiguration()
 {
-    m_cameraUniformBufferObject.data.view = camera.viewMatrix;
-    m_cameraUniformBufferObject.data.projection = camera.lens().projectionMatrix;
-    m_cameraUniformBufferObject.upload();
-
     // here, the base color multiplier can be set every frame
     m_materialUniformBufferObject.data.baseColorFactor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     m_materialUniformBufferObject.upload();
 }
 
-void gltfPbrPass::render(CommandRecorder &commandRecorder)
+void gltfPbrPass::render(CommandRecorder &commandRecorder, const kdgpu_ext::graphics::camera::Camera &camera)
 {
     // clang-format off
     auto render_pass = commandRecorder.beginRenderPass(
@@ -129,7 +123,7 @@ void gltfPbrPass::render(CommandRecorder &commandRecorder)
     // clang-format on
 
     // set global bind groups (descriptor set)
-    render_pass.setBindGroup(shader::gltf_pbr::vertexUniformPassCameraSet, m_cameraUniformBufferObject.bindGroup(), m_gltfRenderPermutations.pipelineLayout);
+    render_pass.setBindGroup(shader::gltf_pbr::vertexUniformPassCameraSet, camera.bindGroup(), m_gltfRenderPermutations.pipelineLayout);
     render_pass.setBindGroup(shader::gltf_pbr::fragmentUniformPassLutTexturesSet, m_pbrTextureSet->bindGroup(), m_gltfRenderPermutations.pipelineLayout);
     render_pass.setBindGroup(shader::gltf_pbr::fragmentUniformPassConfigurationSet, m_materialUniformBufferObject.bindGroup(), m_gltfRenderPermutations.pipelineLayout);
 

@@ -33,12 +33,11 @@ void GltfAreaLightPass::initializeShader()
     m_shader.loadFragmentShader("gltf_area_light.frag.glsl.spv");
 }
 
-void GltfAreaLightPass::initialize(TextureTarget& depth_texture, Extent2D swapchainExtent)
+void GltfAreaLightPass::initialize(TextureTarget &depth_texture, Extent2D swapchainExtent, const kdgpu_ext::graphics::camera::Camera &camera)
 {
     m_colorTextureTarget.initialize(swapchainExtent, Format::R8G8B8A8_UNORM, TextureUsageFlagBits::ColorAttachmentBit);
     m_depthTextureTarget = &depth_texture;
 
-    m_cameraUniformBufferObject.init(shader::gltf_area_light::vertexUniformPassCameraBinding);
     m_configurationUniformBufferObject.init(shader::gltf_area_light::fragmentUniformPassConfigurationBinding);
 
     // setup render targets
@@ -55,7 +54,7 @@ void GltfAreaLightPass::initialize(TextureTarget& depth_texture, Extent2D swapch
     // connect each custom/per-pass uniform buffer set with its layout
     m_shaderTextureChannels.setBindGroupLayoutForBindGroup(
         shader::gltf_area_light::vertexUniformPassCameraSet,
-        &m_cameraUniformBufferObject.bindGroupLayout());
+        &camera.bindGroupLayout());
 
     m_shaderTextureChannels.setBindGroupLayoutForBindGroup(
         shader::gltf_area_light::fragmentUniformPassLtcTexturesSet,
@@ -81,7 +80,6 @@ void GltfAreaLightPass::deinitialize()
     m_gltfRenderPermutations.deinitialize();
     m_shaderTextureChannels.deinitialize();
     m_shader.deinitialize();
-    m_cameraUniformBufferObject = {};
     m_configurationUniformBufferObject = {};
     m_colorTextureTarget.deinitialize();
     m_depthTextureTarget = nullptr;
@@ -101,12 +99,8 @@ void GltfAreaLightPass::setLightIntensity(float genericIntensity, float specular
     m_configurationUniformBufferObject.data.lightConfiguration.z = specularIntensity;
 }
 
-void GltfAreaLightPass::updateViewProjectionMatricesFromCamera(TinyGltfHelper::Camera &camera)
+void GltfAreaLightPass::updateEyePositionFromCamera(kdgpu_ext::graphics::camera::Camera &camera)
 {
-    m_cameraUniformBufferObject.data.view = camera.viewMatrix;
-    m_cameraUniformBufferObject.data.projection = camera.lens().projectionMatrix;
-    m_cameraUniformBufferObject.upload();
-
     auto eye_position = camera.eyePosition();
     m_configurationUniformBufferObject.data.eyePosition.x = eye_position.x;
     m_configurationUniformBufferObject.data.eyePosition.y = eye_position.y;
@@ -115,7 +109,7 @@ void GltfAreaLightPass::updateViewProjectionMatricesFromCamera(TinyGltfHelper::C
     m_configurationUniformBufferObject.upload();
 }
 
-void GltfAreaLightPass::render(CommandRecorder &commandRecorder)
+void GltfAreaLightPass::render(CommandRecorder &commandRecorder, const kdgpu_ext::graphics::camera::Camera &camera)
 {
     // clang-format off
     auto render_pass = commandRecorder.beginRenderPass(
@@ -143,7 +137,7 @@ void GltfAreaLightPass::render(CommandRecorder &commandRecorder)
     // clang-format on
 
     // set global bind groups (descriptor set)
-    render_pass.setBindGroup(shader::gltf_area_light::vertexUniformPassCameraSet, m_cameraUniformBufferObject.bindGroup(), m_gltfRenderPermutations.pipelineLayout);
+    render_pass.setBindGroup(shader::gltf_area_light::vertexUniformPassCameraSet, camera.bindGroup(), m_gltfRenderPermutations.pipelineLayout);
     render_pass.setBindGroup(shader::gltf_area_light::fragmentUniformPassLtcTexturesSet, m_ltcTextureSet->bindGroup(), m_gltfRenderPermutations.pipelineLayout);
     render_pass.setBindGroup(shader::gltf_area_light::fragmentUniformPassConfigurationSet, m_configurationUniformBufferObject.bindGroup(), m_gltfRenderPermutations.pipelineLayout);
 
