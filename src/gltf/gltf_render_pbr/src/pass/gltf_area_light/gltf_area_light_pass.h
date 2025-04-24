@@ -33,10 +33,11 @@ public:
     void deinitialize();
 
     void setQuadVertices(std::vector<glm::vec3> &vertices);
-    void setLightIntensity(float genericIntensity, float specularIntensity);
     void updateEyePositionFromCamera(kdgpu_ext::graphics::camera::Camera &camera);
 
     void render(CommandRecorder &commandRecorder, const kdgpu_ext::graphics::camera::Camera &camera);
+
+    void renderImgui();
 
     TextureTarget &resultColorTextureTarget() { return m_colorTextureTarget; }
 

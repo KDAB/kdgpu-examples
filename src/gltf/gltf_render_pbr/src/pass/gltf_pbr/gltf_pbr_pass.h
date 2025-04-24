@@ -32,11 +32,11 @@ public:
     void resize(Extent2D swapChainExtent);
     void deinitialize();
 
-    void setDirectionalLightIntensity(float intensity);
-    void setIblIntensity(float intensity);
     void updateConfiguration();
 
     void render(CommandRecorder& commandRecorder, const kdgpu_ext::graphics::camera::Camera& camera);
+
+    void renderImgui();
 
     TextureTarget& resultColorTextureTarget() { return m_colorTextureTarget; }
     TextureTarget& resultDepthTextureTarget() { return m_depthTextureTarget; }

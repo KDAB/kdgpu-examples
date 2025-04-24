@@ -33,10 +33,9 @@ public:
     void resize(Extent2D swapChainExtent);
     void deinitialize();
 
-    void setIntensity(float intensity);
-
     void render(CommandRecorder &commandRecorder, const kdgpu_ext::graphics::camera::Camera &camera);
 
+    void renderImgui();
 
     TextureTarget& resultColorTextureTarget() { return m_colorTextureTarget; }
 

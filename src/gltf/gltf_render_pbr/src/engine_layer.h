@@ -62,11 +62,4 @@ private:
 
     // command buffer
     CommandBuffer m_commandBuffer;
-
-    // user configuration / gui values
-    float m_directionalLightIntensity = 1.0f;
-    float m_iblIntensity = 0.4f;
-    float m_blueDotIntensity = 0.0f;
-    float m_generalLightIntensity = 1.0f;
-    float m_specularLightIntensity = 1.5f;
 };

@@ -13,6 +13,8 @@
 
 #include <KDUtils/dir.h>
 
+#include <imgui.h>
+
 namespace pass::gltf_area_light {
 void GltfAreaLightPass::addGltfHolder(kdgpu_ext::gltf_holder::GltfHolder &holder)
 {
@@ -93,12 +95,6 @@ void GltfAreaLightPass::setQuadVertices(std::vector<glm::vec3> &vertices)
     m_configurationUniformBufferObject.data.lightQuadPoints[3] = glm::vec4(vertices[3], 1.0);
 }
 
-void GltfAreaLightPass::setLightIntensity(float genericIntensity, float specularIntensity)
-{
-    m_configurationUniformBufferObject.data.lightConfiguration.x = genericIntensity;
-    m_configurationUniformBufferObject.data.lightConfiguration.z = specularIntensity;
-}
-
 void GltfAreaLightPass::updateEyePositionFromCamera(kdgpu_ext::graphics::camera::Camera &camera)
 {
     auto eye_position = camera.eyePosition();
@@ -162,4 +158,12 @@ void GltfAreaLightPass::render(CommandRecorder &commandRecorder, const kdgpu_ext
             },
     });
 }
+
+void GltfAreaLightPass::renderImgui()
+{
+    ImGui::Text("gltf_area_light pass:");
+    ImGui::Text("This pass calculates diffuse and specular area light contribution.");
+    ImGui::SliderFloat("Diffuse Intensity", &m_configurationUniformBufferObject.data.lightConfiguration.x, 0.0f, 10.0f);
+    ImGui::SliderFloat("Specular Intensity", &m_configurationUniformBufferObject.data.lightConfiguration.z, 0.0f, 10.0f);
 }
+} // namespace pass::gltf_area_light

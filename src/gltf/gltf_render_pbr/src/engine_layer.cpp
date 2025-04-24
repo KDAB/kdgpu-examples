@@ -251,29 +251,17 @@ void GltfRenderPbrEngineLayer::drawControls(ImGuiContext *ctx)
     ImGui::SetNextWindowPos(ImVec2(10, 170), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(0, 0), ImGuiCond_FirstUseEver);
     ImGui::Begin(
-            "Controls",
+            "Per-Pass Controls",
             nullptr,
             ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize);
 
-    ImGui::Text("gltf_pbr pass:");
-    ImGui::Text("This pass renders the GLTF with Physically Based Rendering.");
-    ImGui::SliderFloat("Image Based Lighting (IBL) Intensity/Contribution", &m_iblIntensity, 0.0f, 1.0f);
-    ImGui::SliderFloat("Directional Light Intensity", &m_directionalLightIntensity, 0.0f, 10.0f);
-
-    ImGui::Text("gltf_other_channel pass:");
-    ImGui::Text("This pass illustrates how to render GLTF with a totally different set of texture(s).");
-    ImGui::SliderFloat("Blue dot intensity", &m_blueDotIntensity, 0.0f, 1.0f);
-
-    ImGui::Text("gltf_area_light pass:");
-    ImGui::Text("This pass calculates diffuse and specular area light contribution.");
-    ImGui::SliderFloat("Diffuse Intensity", &m_generalLightIntensity, 0.0f, 10.0f);
-    ImGui::SliderFloat("Specular Intensity", &m_specularLightIntensity, 0.0f, 10.0f);
+    // let each pass specify its controls
+    {
+        m_pbrPass.renderImgui();
+        m_otherChannelPass.renderImgui();
+        m_areaLightPass.renderImgui();
+    }
     ImGui::End();
-
-    m_pbrPass.setIblIntensity(m_iblIntensity);
-    m_pbrPass.setDirectionalLightIntensity(m_directionalLightIntensity);
-    m_areaLightPass.setLightIntensity(m_generalLightIntensity, m_specularLightIntensity);
-    m_otherChannelPass.setIntensity(m_blueDotIntensity);
 }
 void GltfRenderPbrEngineLayer::render()
 {

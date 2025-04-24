@@ -13,6 +13,8 @@
 
 #include <KDUtils/dir.h>
 
+#include <imgui.h>
+
 namespace pass::gltf_other_channel {
 void GltfOtherChannelPass::addGltfHolder(kdgpu_ext::gltf_holder::GltfHolder &holder)
 {
@@ -85,12 +87,6 @@ void GltfOtherChannelPass::deinitialize()
     m_depthTextureTarget = nullptr;
 }
 
-void GltfOtherChannelPass::setIntensity(float intensity)
-{
-    m_configurationUniformBufferObject.data.intensity = intensity;
-    m_configurationUniformBufferObject.upload();
-}
-
 void GltfOtherChannelPass::render(CommandRecorder &commandRecorder, const kdgpu_ext::graphics::camera::Camera &camera)
 {
     // clang-format off
@@ -143,6 +139,14 @@ void GltfOtherChannelPass::render(CommandRecorder &commandRecorder, const kdgpu_
                     .levelCount = 1,
             },
     });
+}
+
+void GltfOtherChannelPass::renderImgui()
+{
+    ImGui::Text("gltf_other_channel pass:");
+    ImGui::Text("This pass illustrates how to render GLTF with a totally different set of texture(s).");
+    ImGui::SliderFloat("Blue dot intensity", &m_configurationUniformBufferObject.data.intensity, 0.0f, 1.0f);
+    m_configurationUniformBufferObject.upload();
 }
 
 } // namespace pass::gltf_other_channel

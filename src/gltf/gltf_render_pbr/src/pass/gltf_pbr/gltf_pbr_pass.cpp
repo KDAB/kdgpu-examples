@@ -13,6 +13,8 @@
 
 #include <KDUtils/dir.h>
 
+#include <imgui.h>
+
 namespace pass::gltf_pbr {
 void gltfPbrPass::addGltfHolder(kdgpu_ext::gltf_holder::GltfHolder &holder)
 {
@@ -79,16 +81,6 @@ void gltfPbrPass::deinitialize()
     m_depthTextureTarget.deinitialize();
 }
 
-void gltfPbrPass::setDirectionalLightIntensity(float intensity)
-{
-    m_materialUniformBufferObject.data.directionalLightIntensity = intensity;
-}
-
-void gltfPbrPass::setIblIntensity(float intensity)
-{
-    m_materialUniformBufferObject.data.iblIntensity = intensity;
-}
-
 void gltfPbrPass::updateConfiguration()
 {
     // here, the base color multiplier can be set every frame
@@ -147,6 +139,14 @@ void gltfPbrPass::render(CommandRecorder &commandRecorder, const kdgpu_ext::grap
                     .levelCount = 1,
             },
     });
+}
 
+void gltfPbrPass::renderImgui()
+{
+    ImGui::Text("gltf_pbr pass:");
+    ImGui::Text("This pass renders the GLTF with Physically Based Rendering.");
+    ImGui::SliderFloat("Image Based Lighting (IBL) Intensity/Contribution", &m_materialUniformBufferObject.data.iblIntensity, 0.0f, 1.0f);
+    ImGui::SliderFloat("Directional Light Intensity", &m_materialUniformBufferObject.data.directionalLightIntensity, 0.0f, 10.0f);
 }
-}
+
+} // namespace pass::gltf_pbr
