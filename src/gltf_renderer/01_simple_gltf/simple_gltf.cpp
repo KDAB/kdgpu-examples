@@ -64,10 +64,7 @@ void SimpleGltf::initializeScene()
 
     // Load the model
     tinygltf::Model model;
-    // const std::string modelPath("AntiqueCamera/glTF/AntiqueCamera.gltf");
     const std::string modelPath("BoxInterleaved/BoxInterleaved.gltf");
-    // const std::string modelPath("DamagedHelmet/glTF/DamagedHelmet.gltf");
-    // const std::string modelPath("Sponza/glTF/Sponza.gltf");
     if (!TinyGltfHelper::loadModel(model, ExampleUtility::gltfModelPath() + modelPath))
         return;
 
